@@ -92,6 +92,8 @@ internal static class InitChecks
         ("portable paths reject Windows device names", async () =>
             {
                 using var fixture = new Fixture();
+                // Allow the deliberately invalid index entry in this temporary repository on Windows.
+                fixture.Git("config", "core.protectNTFS", "false");
                 fixture.Skill("review", "v1");
                 fixture.Commit();
                 var blob = fixture.Git("rev-parse", "HEAD:skills/review/SKILL.md").Trim();
