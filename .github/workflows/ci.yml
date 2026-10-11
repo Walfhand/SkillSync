@@ -28,6 +28,9 @@ jobs:
           dotnet-version: '10.0.x'
       - run: dotnet build SkillSync.slnx --configuration Release
       - run: dotnet run --project tests/SkillSync.Checks --configuration Release --no-build
+      - name: Check release packaging
+        shell: pwsh
+        run: ./tests/packaging.ps1
       - run: dotnet pack src/SkillSync --configuration Release --no-build --output artifacts/packages
       - run: dotnet publish src/SkillSync --configuration Release --runtime ${{ matrix.rid }} -p:PublishProfile=Standalone --output artifacts/standalone/${{ matrix.rid }}
       - run: dotnet publish src/SkillSync --configuration Release --runtime ${{ matrix.second-rid }} -p:PublishProfile=Standalone --output artifacts/standalone/${{ matrix.second-rid }}
