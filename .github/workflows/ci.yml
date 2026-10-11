@@ -1,0 +1,55 @@
+name: checks
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            second-rid: linux-arm64
+          - os: windows-latest
+            rid: win-x64
+            second-rid: win-arm64
+          - os: macos-latest
+            rid: osx-x64
+            second-rid: osx-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-dotnet@v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet build SkillSync.slnx --configuration Release
+      - run: dotnet run --project tests/SkillSync.Checks --configuration Release --no-build
+      - run: dotnet pack src/SkillSync --configuration Release --no-build --output artifacts/packages
+      - run: dotnet publish src/SkillSync --configuration Release --runtime ${{ matrix.rid }} -p:PublishProfile=Standalone --output artifacts/standalone/${{ matrix.rid }}
+      - run: dotnet publish src/SkillSync --configuration Release --runtime ${{ matrix.second-rid }} -p:PublishProfile=Standalone --output artifacts/standalone/${{ matrix.second-rid }}
+      - name: Check the executable for the runner's architecture
+        shell: pwsh
+        run: |
+          $platform = switch ('${{ runner.os }}') {
+            'Linux' { 'linux' }
+            'Windows' { 'win' }
+            'macOS' { 'osx' }
+          }
+          $architecture = '${{ runner.arch }}'.ToLowerInvariant()
+          $extension = if ($platform -eq 'win') { '.exe' } else { '' }
+          & "./artifacts/standalone/$platform-$architecture/skillsync$extension" --help
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: skillsync-${{ matrix.rid }}
+          path: artifacts/standalone/${{ matrix.rid }}/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: skillsync-${{ matrix.second-rid }}
+          path: artifacts/standalone/${{ matrix.second-rid }}/
+          if-no-files-found: error

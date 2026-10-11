@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/SkillSync/SkillSync.csproj" />
+  <Project Path="tests/SkillSync.Checks/SkillSync.Checks.csproj" />
+</Solution>
