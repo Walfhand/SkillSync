@@ -38,7 +38,9 @@ try {
             if ($LASTEXITCODE -ne 0 -or $content -ne 'fixture-skillsync') { throw 'TAR changed executable bytes.' }
             $binary = 'skillsync'
         }
-        if (($entries | Sort-Object) -join ',' -cne (@('LICENSE', 'README.md', $binary) | Sort-Object) -join ',') {
+        $actualNames = ($entries | Sort-Object) -join ','
+        $expectedNames = (@('LICENSE', 'README.md', $binary) | Sort-Object) -join ','
+        if ($actualNames -cne $expectedNames) {
             throw "Archive entries must be flat and contain only the executable, README and license: $rid"
         }
     }
