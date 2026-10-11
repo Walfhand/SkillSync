@@ -55,7 +55,12 @@ function Invoke-SkillSyncInstall([string]$ReleaseVersion, [string]$Directory, [b
         if ($checksum -cnotmatch '^([a-f0-9]{64})  ([^\r\n]+)$' -or $Matches[2] -cne $asset) {
             throw 'Invalid SHA-256 checksum file.'
         }
-        if ((Get-FileHash $archivePath -Algorithm SHA256).Hash -ine $Matches[1]) {
+        $expectedHash = $Matches[1]
+        $sha = [Security.Cryptography.SHA256]::Create()
+        $stream = [IO.File]::OpenRead($archivePath)
+        try { $actualHash = [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '') }
+        finally { $stream.Dispose(); $sha.Dispose() }
+        if ($actualHash -ine $expectedHash) {
             throw 'SHA-256 mismatch; the existing installation was kept.'
         }
         Add-Type -AssemblyName System.IO.Compression.FileSystem

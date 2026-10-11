@@ -9,7 +9,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>skillsync</ToolCommandName>
     <PackageId>SkillSync.Cli</PackageId>
-    <Version>0.1.0-preview.3</Version>
+    <Version>0.1.0-preview.4</Version>
     <Authors>SkillSync contributors</Authors>
     <Description>Share Agent Skills from a Git registry across Claude Code, Codex and Cursor.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

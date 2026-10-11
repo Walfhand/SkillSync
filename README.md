@@ -58,34 +58,35 @@ Remplacez `linux-x64` par la cible souhaitée :
 
 Chaque binaire cible son système et son architecture. Les dépendances natives de l'OS doivent être présentes ; Alpine/musl n'est pas une cible fournie. Le runtime embarqué se met à jour en recompilant et redistribuant l'outil avec un SDK à jour. Native AOT pourra être évalué si la taille du téléchargement ou le temps de démarrage le justifie.
 
-La CI est configurée pour produire ces six distributions et vérifier le lancement du binaire correspondant à chaque runner. Les binaires sont disponibles comme artefacts de compilation ; la publication automatique de versions dans GitHub Releases reste à ajouter.
+La CI produit ces six distributions, vérifie les installateurs et le lancement du binaire correspondant à chaque runner. Un tag de version publie les archives et leurs empreintes SHA-256 dans [GitHub Releases](https://github.com/Walfhand/SkillSync/releases).
 
 ## Installer dans le PATH
 
-Après téléchargement et extraction de la distribution correspondant à votre machine, ouvrez un terminal dans son dossier.
+Prérequis : Git. Aucun SDK ou runtime .NET n'est nécessaire. Les scripts téléchargent l'archive adaptée au système et à l'architecture, vérifient son SHA-256 et installent le binaire dans un dossier utilisateur.
 
-Sous Linux ou macOS :
+Sous Linux ou macOS, avec Bash ou Zsh :
 
 ```sh
-mkdir -p "$HOME/.local/bin"
-install -m 755 ./skillsync "$HOME/.local/bin/skillsync"
-export PATH="$HOME/.local/bin:$PATH"
-skillsync --help
+curl -fsSL https://raw.githubusercontent.com/Walfhand/SkillSync/v0.1.0-preview.4/scripts/install.sh -o /tmp/skillsync-install.sh
+bash /tmp/skillsync-install.sh --version v0.1.0-preview.4
 ```
 
-Si `~/.local/bin` n'est pas déjà dans votre `PATH`, ajoutez la ligne `export PATH="$HOME/.local/bin:$PATH"` à votre fichier de configuration du shell (`~/.bashrc` pour Bash ou `~/.zshrc` pour Zsh) afin de la conserver dans les nouveaux terminaux.
+Le binaire est installé dans `~/.local/bin`. Le script ajoute ce dossier au PATH dans `~/.bashrc`, `~/.bash_profile` sous macOS avec Bash, ou `~/.zshrc` avec Zsh (en respectant `ZDOTDIR`). Ouvrez ensuite un nouveau terminal. Vous pouvez personnaliser les destinations avec `--install-dir /chemin/absolu` et `--profile /chemin/absolu/vers/le/profil`. Pour un autre shell, installez manuellement le binaire et configurez son PATH.
 
 Sous Windows, dans PowerShell :
 
 ```powershell
-$installDir = Join-Path $env:LOCALAPPDATA 'SkillSync\bin'
-New-Item -ItemType Directory -Force $installDir | Out-Null
-Copy-Item .\skillsync.exe $installDir
+Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Walfhand/SkillSync/v0.1.0-preview.4/scripts/install.ps1 -OutFile "$env:TEMP\skillsync-install.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\skillsync-install.ps1" -Version v0.1.0-preview.4
 ```
 
-Ajoutez ensuite `%LOCALAPPDATA%\SkillSync\bin` au `Path` utilisateur dans les variables d'environnement Windows, puis ouvrez un nouveau terminal.
+Le binaire est installé dans `%LOCALAPPDATA%\SkillSync\bin`, ajouté au Path utilisateur. Ouvrez ensuite un nouveau terminal. `-InstallDir` change la destination et `-NoPathUpdate` conserve le PATH existant. Le changement d'ExecutionPolicy ci-dessus concerne uniquement le processus d'installation.
 
-Une fois le dossier dans le `PATH`, ces commandes fonctionnent depuis n'importe quel dossier :
+Les scripts sont consultables avant exécution. Ils échouent sans remplacer le binaire si le téléchargement, le SHA-256 ou le contenu de l'archive est invalide. Relancer le script remplace la version et conserve une seule entrée PATH. Arrêtez d'abord tout processus `skillsync watch` avant une mise à jour.
+
+La version est explicitement sélectionnée ici parce qu'il s'agit d'une préversion. Sans argument de version, le script utilise la dernière **version stable** de GitHub ; cette option nécessite qu'une version stable ait été publiée. Les archives peuvent aussi être téléchargées et installées manuellement depuis Releases.
+
+Une fois installé, depuis n'importe quel dossier :
 
 ```sh
 skillsync init git@github.com:mon-equipe/skills.git
@@ -93,13 +94,13 @@ skillsync sync
 skillsync status
 ```
 
-Pour remplacer une installation autonome, arrêtez `watch` et remplacez l'exécutable par celui de la nouvelle version. Pour la retirer, exécutez d'abord `skillsync uninstall`, puis supprimez le binaire installé ; les sauvegardes restent conservées.
+Pour retirer l'installation, exécutez d'abord `skillsync uninstall`, puis supprimez le binaire installé et l'entrée PATH ajoutée par le script. Les sauvegardes restent conservées.
 
 ## Alternative : installer comme outil .NET
 
 ```sh
 dotnet pack src/SkillSync --configuration Release --output artifacts/packages
-dotnet tool install --global SkillSync.Cli --version 0.1.0-preview.3 --add-source ./artifacts/packages
+dotnet tool install --global SkillSync.Cli --version 0.1.0-preview.4 --add-source ./artifacts/packages
 skillsync --help
 ```
 
@@ -221,7 +222,7 @@ src/SkillSync/
 
 `CliApp` construit explicitement les composants et enregistre les commandes. Les slices pilotent leurs opérations ; elles partagent un seul `SkillInstaller` pour appliquer les fichiers et récupérer les transactions interrompues. Ce moteur ne connaît ni les commandes CLI ni Git. `Watch` compose les cas d'usage `Sync` et `Status`.
 
-Les tests sont regroupés par fonctionnalité sous `tests/SkillSync.Checks/Features/`, avec des vérifications dédiées à la récupération, à la validation du registre et à la CLI complète. Le runner, les assertions et les dépôts Git temporaires sont séparés. Une correction doit ajouter sa vérification dans le groupe concerné.
+Les tests sont regroupés par fonctionnalité sous `tests/SkillSync.Checks/Features/`, avec des vérifications dédiées à la récupération, à la validation du registre et à la CLI complète. Le runner, les assertions et les dépôts Git temporaires sont séparés. Toute fonctionnalité ou correction suit le cycle TDD : écrire la vérification dans le groupe concerné, observer son échec, implémenter le minimum, puis passer au vert avant de refactorer. Cette règle est aussi inscrite dans `AGENTS.md`.
 
 Les arguments CLI, les chemins d'installation et le format JSON de l'état local sont conservés. Aucun framework de médiation, conteneur d'injection de dépendances ou couche de repositories génériques n'est nécessaire pour ce découpage.
 
@@ -231,6 +232,6 @@ dotnet run --project tests/SkillSync.Checks --configuration Release --no-build
 dotnet pack src/SkillSync --configuration Release --no-build --output artifacts/packages
 ```
 
-La CI fournie est configurée pour exécuter ces commandes sur Linux, Windows et macOS, puis publier les exécutables autonomes en artefacts de compilation. Les vérifications portent sur un vrai registre Git temporaire : installation, mise à jour, désinstallation, fichiers personnels, modifications locales, suppressions, panne réseau simulée, fichiers manquants, métadonnées invalides, liens malveillants et récupération d'interruption. La création d'un lien local est ignorée sous Windows lorsqu'elle nécessite des privilèges ; les liens suivis dans Git restent testés.
+La CI exécute ces commandes sur Linux, Windows et macOS, teste les installateurs avec un serveur HTTP local et vérifie les archives de distribution. Elle produit six archives autonomes et leurs SHA-256 ; les tags de version les publient dans GitHub Releases. Les vérifications portent sur un vrai registre Git temporaire : installation, mise à jour, désinstallation, fichiers personnels, modifications locales, suppressions, panne réseau simulée, fichiers manquants, métadonnées invalides, liens malveillants et récupération d'interruption. La création d'un lien local est ignorée sous Windows lorsqu'elle nécessite des privilèges ; les liens suivis dans Git restent testés.
 
-Pour une correction, ajoutez une vérification qui reproduit le problème. Les prochaines étapes utiles sont les essais réels avec les trois agents, les intégrations aux planificateurs des trois OS, puis la gestion facultative des équipes et des versions approuvées.
+Les tests des installateurs couvrent les téléchargements, les erreurs de SHA-256, les archives malveillantes, les versions invalides, Git absent et le PATH sans doublon. Ils ne modifient jamais les profils ou le PATH utilisateur réels. Les prochaines étapes utiles sont les essais réels avec les trois agents, les intégrations aux planificateurs des trois OS, puis la gestion facultative des équipes et des versions approuvées.
