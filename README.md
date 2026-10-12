@@ -305,7 +305,7 @@ src/SkillSync/
 
 Les tests sont regroupés par fonctionnalité sous `tests/SkillSync.Checks/Features/`, avec des vérifications dédiées à la récupération, à la validation du registre et à la CLI complète. Le runner, les assertions et les dépôts Git temporaires sont séparés. Toute fonctionnalité ou correction suit le cycle TDD : écrire la vérification dans le groupe concerné, observer son échec, implémenter le minimum, puis passer au vert avant de refactorer. Cette règle est aussi inscrite dans `AGENTS.md`.
 
-Les arguments CLI, les chemins d'installation et le format JSON de l'état local sont conservés. Aucun framework de médiation, conteneur d'injection de dépendances ou couche de repositories génériques n'est nécessaire pour ce découpage.
+Les commandes existantes et les chemins d'installation restent compatibles. Les états des anciennes versions sont lisibles ; la configuration reçoit des champs optionnels pour la sélection, l'équipe et la révision. Les anciennes CLI ne savent pas lire ces nouveaux champs : le retour arrière des skills ne constitue pas un retour arrière du binaire. Aucun framework de médiation, conteneur d'injection de dépendances ou couche de repositories génériques n'est nécessaire pour ce découpage.
 
 ```sh
 dotnet build SkillSync.slnx --configuration Release
