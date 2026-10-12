@@ -13,13 +13,16 @@ jobs:
         include:
           - os: ubuntu-latest
             rid: linux-x64
-            second-rid: linux-arm64
+          - os: ubuntu-24.04-arm
+            rid: linux-arm64
           - os: windows-latest
             rid: win-x64
-            second-rid: win-arm64
-          - os: macos-latest
+          - os: windows-11-arm
+            rid: win-arm64
+          - os: macos-15-intel
             rid: osx-x64
-            second-rid: osx-arm64
+          - os: macos-latest
+            rid: osx-arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7.0.1
@@ -33,7 +36,6 @@ jobs:
         run: ./tests/packaging.ps1
       - run: dotnet pack src/SkillSync --configuration Release --no-build --output artifacts/packages
       - run: dotnet publish src/SkillSync --configuration Release --runtime ${{ matrix.rid }} -p:PublishProfile=Standalone --output artifacts/standalone/${{ matrix.rid }}
-      - run: dotnet publish src/SkillSync --configuration Release --runtime ${{ matrix.second-rid }} -p:PublishProfile=Standalone --output artifacts/standalone/${{ matrix.second-rid }}
       - name: Check the executable for the runner's architecture
         shell: pwsh
         run: |
@@ -50,16 +52,10 @@ jobs:
         shell: pwsh
         run: |
           ./scripts/package-release.ps1 -InputDirectory artifacts/standalone/${{ matrix.rid }} -OutputDirectory artifacts/releases -RuntimeIdentifier ${{ matrix.rid }}
-          ./scripts/package-release.ps1 -InputDirectory artifacts/standalone/${{ matrix.second-rid }} -OutputDirectory artifacts/releases -RuntimeIdentifier ${{ matrix.second-rid }}
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: skillsync-${{ matrix.rid }}
           path: artifacts/releases/skillsync-${{ matrix.rid }}.*
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v7.0.2
-        with:
-          name: skillsync-${{ matrix.second-rid }}
-          path: artifacts/releases/skillsync-${{ matrix.second-rid }}.*
           if-no-files-found: error
 
   release:

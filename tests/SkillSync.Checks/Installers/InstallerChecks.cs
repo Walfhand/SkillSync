@@ -93,6 +93,22 @@ internal static class InstallerChecks
             var result = await fixture.InstallAsync("latest");
             Check(result.Exit == 0, result.Output + result.Error);
             Check(File.Exists(fixture.Binary), "Latest release was not installed.");
+        }),
+        ("installer records PATH ownership for complete removal and preserves it on repeated installs", async () =>
+        {
+            await using var fixture = new InstallerFixture();
+            Check((await fixture.InstallAsync()).Exit == 0, "Installation failed.");
+            var receipts = Directory.GetFiles(fixture.InstallDir, ".skillsync-path-*.json");
+            Check(receipts.Length == 1, "Installer did not record PATH ownership.");
+            var first = File.ReadAllText(receipts[0]);
+            using var receipt = System.Text.Json.JsonDocument.Parse(first);
+            Check(receipt.RootElement.GetProperty("directory").GetString() == fixture.InstallDir, "Receipt points at another installation.");
+            if (!OperatingSystem.IsWindows())
+            {
+                Check(receipt.RootElement.GetProperty("profile").GetString() == fixture.Profile, "Receipt lost shell profile.");
+                Check(receipt.RootElement.GetProperty("pathAdded").GetBoolean(), "Installer did not own its new PATH entry.");
+            }
+            Check((await fixture.InstallAsync()).Exit == 0 && File.ReadAllText(receipts[0]) == first, "Repeated install lost PATH ownership.");
         })
     ];
 }

@@ -5,9 +5,9 @@ namespace SkillSync.Storage;
 
 public sealed class StateStore(LocalFiles files)
 {
-    public SyncState? Read()
+    public SyncState? Read(string? path = null)
     {
-        var state = files.ReadJson<SyncState>(files.StatePath);
+        var state = files.ReadJson<SyncState>(path ?? files.StatePath);
         if (state is null) return null;
         LocalFiles.ValidateId(state.TransactionId);
         RegistryConfig.Validate(state.Config);

@@ -9,13 +9,15 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>skillsync</ToolCommandName>
     <PackageId>SkillSync.Cli</PackageId>
-    <Version>0.1.0-preview.4</Version>
+    <Version>0.1.0-preview.5</Version>
     <Authors>SkillSync contributors</Authors>
     <Description>Share Agent Skills from a Git registry across Claude Code, Codex and Cursor.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="../../scripts/install.sh" LogicalName="SkillSync.install.sh" />
+    <EmbeddedResource Include="../../scripts/install.ps1" LogicalName="SkillSync.install.ps1" />
     <PackageReference Include="System.CommandLine" Version="2.0.12" />
     <PackageReference Include="YamlDotNet" Version="18.1.0" />
     <None Include="../../README.md" Link="README.md" Pack="true" PackagePath="/" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />

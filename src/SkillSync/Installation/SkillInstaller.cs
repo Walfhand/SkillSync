@@ -53,6 +53,13 @@ public sealed class SkillInstaller(LocalFiles files, StateStore states)
                     throw new IOException($"Local edits found at {key}. Commit or move them before removing this skill.");
                 if (Directory.Exists(path)) changes.Add(new Change(skill.Target, skill.Name, HadOriginal: true, Install: false));
             }
+            if (changes.Count == 0 && previous is not null)
+            {
+                var unchanged = previous with { Config = config, Commit = snapshot.Commit, SyncedAt = DateTimeOffset.UtcNow, Uninstalled = uninstall };
+                states.Write(unchanged);
+                return unchanged;
+            }
+            if (previous is not null) files.WriteJson(files.At($".skillsync/transactions/{id}/before.json"), previous);
             var next = new SyncState(id, config, snapshot.Commit, DateTimeOffset.UtcNow, installed.ToArray(), uninstall);
             files.WriteJson(files.JournalPath, new Journal(id, changes.ToArray()));
             try

@@ -17,10 +17,13 @@ public sealed class Init(LocalFiles files, StateStore states, SkillInstaller ins
         var previous = states.Read();
         if (previous is { Uninstalled: false } &&
             (previous.Config.Source != config.Source || previous.Config.Branch != config.Branch ||
-             !previous.Config.Agents.SequenceEqual(config.Agents)))
+             !previous.Config.Agents.SequenceEqual(config.Agents) ||
+             previous.Config.Team != config.Team || previous.Config.Revision != config.Revision ||
+             !(previous.Config.Skills ?? []).SequenceEqual(config.Skills ?? []) ||
+             !(previous.Config.Categories ?? []).SequenceEqual(config.Categories ?? [])))
             throw new InvalidOperationException("Already connected to a different configuration. Run uninstall before switching registries or agents.");
         var snapshot = await GitRegistry.ReadAsync(config, files, cancellation);
-        return installer.Apply(config, previous, snapshot);
+        return installer.Apply(config, previous, SkillSelection.Apply(snapshot, config));
     }
 
     public Command CreateCommand(CommandOutput output)
@@ -33,12 +36,16 @@ public sealed class Init(LocalFiles files, StateStore states, SkillInstaller ins
             AllowMultipleArgumentsPerToken = true,
             Description = "claude-code, codex, cursor. Defaults to all three."
         };
-        var init = new Command("init", "Connect to a registry and install its skills.") { source, branch, agents };
+        var skills = new Option<string[]>("--skill") { AllowMultipleArgumentsPerToken = true };
+        var categories = new Option<string[]>("--category") { AllowMultipleArgumentsPerToken = true };
+        var team = new Option<string?>("--team");
+        var revision = new Option<string?>("--revision");
+        var init = new Command("init", "Connect to a registry and install its skills.") { source, branch, agents, skills, categories, team, revision };
         init.SetAction(async (parse, token) => await output.ExecuteAsync(async () =>
         {
             var address = parse.GetValue(source)!;
             if (Directory.Exists(address)) address = Path.GetFullPath(address);
-            output.Print(await ExecuteAsync(new RegistryConfig(address, parse.GetValue(branch)!, parse.GetValue(agents)!), token));
+            output.Print(await ExecuteAsync(new RegistryConfig(address, parse.GetValue(branch)!, parse.GetValue(agents)!, parse.GetValue(skills), parse.GetValue(categories), parse.GetValue(team), parse.GetValue(revision)), token));
         }, token));
         return init;
     }

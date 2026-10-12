@@ -86,8 +86,22 @@ candidate=$(mktemp "$install_dir/.skillsync.XXXXXXXX")
 install -m 755 "$stage/skillsync" "$candidate"
 quoted_dir=$(printf "'%s'" "$(printf '%s' "$install_dir" | sed "s/'/'\\\\''/g")")
 path_line=$(printf 'case ":$PATH:" in *:%s:*) ;; *) export PATH=%s:"$PATH" ;; esac' "$quoted_dir" "$quoted_dir")
+path_added=false
 if ! grep -Fqx "$path_line" "$profile" 2>/dev/null; then
     printf '\n# SkillSync\n%s\n' "$path_line" >> "$profile"
+    path_added=true
+fi
+if command -v sha256sum >/dev/null 2>&1; then
+    profile_hash=$(printf '%s' "$profile" | sha256sum)
+else
+    profile_hash=$(printf '%s' "$profile" | shasum -a 256)
+fi
+read -r profile_hash ignored <<< "$profile_hash"
+receipt="$install_dir/.skillsync-path-$profile_hash.json"
+json_string() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+if [ ! -e "$receipt" ]; then
+    printf '{"directory":"%s","profile":"%s","pathLine":"%s","pathAdded":%s}\n' \
+        "$(json_string "$install_dir")" "$(json_string "$profile")" "$(json_string "$path_line")" "$path_added" > "$receipt"
 fi
 mv -f "$candidate" "$install_dir/skillsync"
 candidate=

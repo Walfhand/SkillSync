@@ -11,7 +11,7 @@ public static class GitRegistry
 
     public static async Task<Snapshot> ReadAsync(RegistryConfig config, LocalFiles files, CancellationToken cancellation)
     {
-        RegistryConfig.ValidateSource(config.Source);
+        RegistryConfig.Validate(config);
         if (string.IsNullOrEmpty(config.Branch) || config.Branch.Any(char.IsControl))
             throw new InvalidDataException("Provide a valid Git branch.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
@@ -27,6 +27,9 @@ public static class GitRegistry
 
         await Git("check-ref-format", "refs/heads/" + config.Branch);
         if (!Directory.Exists(cache)) await Git("init", "--bare", "--quiet", cache);
+        var commit = config.Revision;
+        if (commit is null)
+        {
         var expectedRef = "refs/heads/" + config.Branch;
         var refs = Utf8.GetString(await Git("ls-remote", "--exit-code", "--refs", "--", config.Source, expectedRef))
             .Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -34,7 +37,8 @@ public static class GitRegistry
         var parts = refs[0].TrimEnd('\r').Split('\t');
         if (parts.Length != 2 || parts[1] != expectedRef || !Regex.IsMatch(parts[0], "^(?:[a-f0-9]{40}|[a-f0-9]{64})$"))
             throw new InvalidDataException("Git returned an unexpected registry reference.");
-        var commit = parts[0];
+        commit = parts[0];
+        }
         await Git("--git-dir=" + cache, "fetch", "--quiet", "--no-tags", "--no-recurse-submodules", "--depth=1", "--", config.Source, commit);
         var tree = Utf8.GetString(await Git("--git-dir=" + cache, "ls-tree", "-r", "-z", commit));
         var skills = new Dictionary<string, List<SkillFile>>(StringComparer.Ordinal);
@@ -85,17 +89,30 @@ public static class GitRegistry
                 ?? throw new InvalidDataException($"Skill '{name}' needs a SKILL.md file.");
             SkillValidator.ValidateDocument(document.Content, name);
         }
-        return new Snapshot(commit, skills);
+        RegistryPolicy? policy = null;
+        var policyEntry = tree.Split('\0').SingleOrDefault(entry => entry.EndsWith("\tskillsync.json", StringComparison.Ordinal));
+        if (policyEntry is not null)
+        {
+            var metadata = policyEntry[..policyEntry.IndexOf('\t')].Split(' ');
+            if (metadata.Length != 3 || metadata[0] != "100644" || metadata[1] != "blob")
+                throw new InvalidDataException("Registry policy must be a regular file.");
+            var size = Utf8.GetString(await Git("--git-dir=" + cache, "cat-file", "-s", metadata[2])).Trim();
+            if (!int.TryParse(size, out var length) || length > 1024 * 1024)
+                throw new InvalidDataException("Registry policy exceeds 1 MiB.");
+            policy = RegistryPolicy.Parse(await Git("--git-dir=" + cache, "cat-file", "blob", metadata[2]), skills.Keys);
+        }
+        return new Snapshot(commit, skills, roots.ToDictionary(pair => pair.Value, pair => pair.Key[7..]), policy);
     }
 
-    private static async Task<byte[]> RunAsync(string[] arguments, CancellationToken cancellation)
+    public static async Task<byte[]> RunAsync(string[] arguments, CancellationToken cancellation, string? directory = null)
     {
         var start = new ProcessStartInfo("git")
         {
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            WorkingDirectory = directory ?? Environment.CurrentDirectory
         };
         foreach (var key in start.Environment.Keys.Where(k => k.StartsWith("GIT_", StringComparison.OrdinalIgnoreCase)).ToArray())
             start.Environment.Remove(key);

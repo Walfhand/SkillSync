@@ -5,7 +5,9 @@ using SkillSync.Checks.Registry;
 using SkillSync.Checks.Installers;
 
 var checks = InitChecks.All.Concat(SyncChecks.All).Concat(RecoveryChecks.All)
-    .Concat(LifecycleChecks.All).Concat(ValidationChecks.All).Concat(CliChecks.All).Concat(InstallerChecks.All).ToArray();
+    .Concat(LifecycleChecks.All).Concat(ValidationChecks.All).Concat(CliChecks.All).Concat(InstallerChecks.All)
+    .Concat(SelectionChecks.All).Concat(BackupChecks.All).Concat(ContributionChecks.All).Concat(SchedulingChecks.All)
+    .Concat(MaintenanceChecks.All).ToArray();
 
 var failures = 0;
 foreach (var (name, run) in checks)

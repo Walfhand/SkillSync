@@ -3,7 +3,8 @@ using SkillSync.Agents;
 
 namespace SkillSync.Registry;
 
-public sealed record RegistryConfig(string Source, string Branch, string[] Agents)
+public sealed record RegistryConfig(string Source, string Branch, string[] Agents,
+    string[]? Skills = null, string[]? Categories = null, string? Team = null, string? Revision = null)
 {
     public static void Validate(RegistryConfig config)
     {
@@ -12,6 +13,11 @@ public sealed record RegistryConfig(string Source, string Branch, string[] Agent
             string.IsNullOrEmpty(config.Branch)) throw new InvalidDataException("Invalid registry configuration.");
         ValidateSource(config.Source);
         foreach (var agent in config.Agents) AgentTargets.Target(agent);
+        foreach (var skill in config.Skills ?? []) SkillValidator.ValidateName(skill);
+        foreach (var category in config.Categories ?? []) Storage.LocalFiles.ValidateRelative(category);
+        if (config.Team is not null) SkillValidator.ValidateName(config.Team);
+        if (config.Revision is not null && !Regex.IsMatch(config.Revision, "^(?:[a-f0-9]{40}|[a-f0-9]{64})$"))
+            throw new InvalidDataException("Revision must be a full lowercase Git commit hash.");
     }
 
     public static void ValidateSource(string source)

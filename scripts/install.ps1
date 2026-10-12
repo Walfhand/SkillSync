@@ -78,15 +78,24 @@ function Invoke-SkillSyncInstall([string]$ReleaseVersion, [string]$Directory, [b
         New-Item -ItemType Directory -Force $Directory | Out-Null
         $candidate = Join-Path $Directory ('.skillsync-' + [Guid]::NewGuid().ToString('N'))
         [IO.File]::Copy($stagedBinary, $candidate)
+        $pathAdded = $false
         if (-not $SkipPath) {
             $existing = [Environment]::GetEnvironmentVariable('Path', 'User')
             $updated = Get-SkillSyncPath $existing $Directory
-            if ($updated -cne $existing) { [Environment]::SetEnvironmentVariable('Path', $updated, 'User') }
+            if ($updated -cne $existing) {
+                [Environment]::SetEnvironmentVariable('Path', $updated, 'User')
+                $pathAdded = $true
+            }
         }
         $destination = Join-Path $Directory 'skillsync.exe'
         if ([IO.File]::Exists($destination)) { [IO.File]::Replace($candidate, $destination, $null) }
         else { [IO.File]::Move($candidate, $destination) }
         $candidate = $null
+        $receipt = Join-Path $Directory '.skillsync-path-windows.json'
+        if (-not [IO.File]::Exists($receipt)) {
+            $json = @{ directory = $Directory; profile = $null; pathLine = $null; pathAdded = $pathAdded } | ConvertTo-Json
+            [IO.File]::WriteAllText($receipt, $json)
+        }
         if (-not $SkipPath) { $env:Path = Get-SkillSyncPath $env:Path $Directory }
         Write-Output "Installed SkillSync $ReleaseVersion at $destination. Open a new terminal to use it everywhere."
     }
