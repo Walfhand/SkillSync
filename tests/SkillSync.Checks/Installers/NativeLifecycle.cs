@@ -14,6 +14,24 @@ internal static class NativeLifecycle
         Check(installed.Exit == 0, installed.Output + installed.Error);
         var init = await install.CliAsync(home, "init", registry.Repo);
         Check(init.Exit == 0, init.Output + init.Error);
+        if (Environment.GetEnvironmentVariable("SKILLSYNC_TEST_SCHEDULER") == "1")
+        {
+            try
+            {
+                var enable = await install.CliAsync(home, "autosync", "enable", "--interval", "1");
+                Check(enable.Exit == 0, enable.Output + enable.Error);
+                var last = Path.Combine(home, ".skillsync/last-sync.json");
+                await WaitAsync(() => File.Exists(last) && File.ReadAllText(last).Contains("\"success\": true"));
+                var status = await install.CliAsync(home, "autosync", "status");
+                Check(status.Exit == 0 && status.Output.Contains("active"), status.Output + status.Error);
+                Console.WriteLine("PASS native scheduler executes a real synchronization job.");
+            }
+            finally
+            {
+                var disable = await install.CliAsync(home, "autosync", "disable");
+                Check(disable.Exit == 0, disable.Output + disable.Error);
+            }
+        }
         File.WriteAllText(Path.Combine(home, "personal.txt"), "keep");
         var update = await install.CliAsync(home, "update", "--version", "v9.8.7");
         Check(update.Exit == 0, update.Output + update.Error);
@@ -21,7 +39,7 @@ internal static class NativeLifecycle
         {
             var log = Path.Combine(home, ".skillsync/maintenance.log");
             await WaitAsync(() => File.Exists(log));
-            Check(File.ReadAllText(log).Contains("Completed"), "Deferred update failed: " + File.ReadAllText(log));
+            Check(File.ReadAllText(log).Contains("Completed"), "Deferred update failed: " + File.ReadAllText(log) + update.Output + update.Error);
         }
         var version = await install.CliAsync(home, "--version");
         Check(version.Exit == 0 && version.Output.Contains("preview.5"), "Updated executable does not launch.");

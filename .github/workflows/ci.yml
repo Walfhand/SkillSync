@@ -48,7 +48,16 @@ jobs:
           $extension = if ($platform -eq 'win') { '.exe' } else { '' }
           & "./artifacts/standalone/$platform-$architecture/skillsync$extension" --help
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Exercise native install, update and complete removal
+      - name: Start an isolated runner's systemd user session
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo loginctl enable-linger "$USER"
+          echo "XDG_RUNTIME_DIR=/run/user/$(id -u)" >> "$GITHUB_ENV"
+          echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus" >> "$GITHUB_ENV"
+      - name: Exercise native installation, scheduling, update and complete removal
+        env:
+          SKILLSYNC_TEST_SCHEDULER: '1'
         shell: pwsh
         run: |
           $extension = if ('${{ runner.os }}' -eq 'Windows') { '.exe' } else { '' }

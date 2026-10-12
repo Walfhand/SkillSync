@@ -29,7 +29,7 @@ public sealed class Maintenance(LocalFiles files, StateStore states, Uninstall u
         File.WriteAllText(path, "$ErrorActionPreference='Stop'\ntry {\n" +
             $"Wait-Process -Id {Environment.ProcessId} -ErrorAction SilentlyContinue\n{body}\n" +
             $"'Completed' | Out-File -LiteralPath {Ps(log)}\n}} catch {{ $_.Exception.Message | Out-File -LiteralPath {Ps(log)} }}\n" +
-            $"Remove-Item -LiteralPath {Ps(path)} -Force\n");
+            $"Remove-Item -LiteralPath {Ps(path)} -Force\n", new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
         var start = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe"))
             { UseShellExecute = false, CreateNoWindow = true };
         foreach (var arg in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", path }) start.ArgumentList.Add(arg);
