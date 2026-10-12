@@ -49,6 +49,15 @@ internal static class BackupChecks
             Check(await CliApp.RunAsync(["backups", "prune", "--keep", "0", "--yes"], f.Home, output, error) == 0, error.ToString());
             Check(File.Exists(recovered) && Directory.Exists(f.Path($".skillsync/transactions/{current.TransactionId}/backup")), "Prune destroyed recovery data.");
             Check(!Directory.Exists(f.Path($".skillsync/transactions/{prunable.TransactionId}")), "Old backup was not actually pruned.");
+        }),
+        ("uninstall of already missing copies clears the persisted installed list", async () =>
+        {
+            using var f = new Fixture(); f.Skill("review", "old"); f.Commit(); await f.Init.ExecuteAsync(f.Config);
+            Directory.Delete(f.Path(".agents/skills/review"), true);
+            Directory.Delete(f.Path(".claude/skills/review"), true);
+            f.Uninstall.Execute();
+            var state = new SkillSync.Storage.StateStore(f.Files).Read()!;
+            Check(state.Uninstalled && state.Skills.Length == 0, "Missing copies remain recorded as installed.");
         })
     ];
 }

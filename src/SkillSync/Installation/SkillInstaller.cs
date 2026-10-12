@@ -55,7 +55,7 @@ public sealed class SkillInstaller(LocalFiles files, StateStore states)
             }
             if (changes.Count == 0 && previous is not null)
             {
-                var unchanged = previous with { Config = config, Commit = snapshot.Commit, SyncedAt = DateTimeOffset.UtcNow, Uninstalled = uninstall };
+                var unchanged = previous with { Config = config, Commit = snapshot.Commit, SyncedAt = DateTimeOffset.UtcNow, Skills = installed.ToArray(), Uninstalled = uninstall };
                 states.Write(unchanged);
                 return unchanged;
             }

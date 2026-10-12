@@ -90,6 +90,8 @@ path_added=false
 if ! grep -Fqx "$path_line" "$profile" 2>/dev/null; then
     printf '\n# SkillSync\n%s\n' "$path_line" >> "$profile"
     path_added=true
+elif grep -F -B1 -x "$path_line" "$profile" | grep -Fqx '# SkillSync'; then
+    path_added=true
 fi
 if command -v sha256sum >/dev/null 2>&1; then
     profile_hash=$(printf '%s' "$profile" | sha256sum)

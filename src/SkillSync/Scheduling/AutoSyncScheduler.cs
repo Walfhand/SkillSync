@@ -49,8 +49,9 @@ public sealed class AutoSyncScheduler(LocalFiles files,
         {
             if (Platform == "linux")
             {
+                await Require("systemctl", ["--user", "link", files.At(".config/systemd/user/skillsync.service")], cancellation);
                 await Require("systemctl", ["--user", "daemon-reload"], cancellation);
-                await Require("systemctl", ["--user", "enable", "--now", "skillsync.timer"], cancellation);
+                await Require("systemctl", ["--user", "enable", "--now", files.At(".config/systemd/user/skillsync.timer")], cancellation);
             }
             else if (Platform == "osx")
                 await Require("launchctl", ["bootstrap", await Domain(cancellation), files.At(definitions.Single().Key)], cancellation);
@@ -74,7 +75,7 @@ public sealed class AutoSyncScheduler(LocalFiles files,
         if (state is null) return;
         if (state.Platform != Platform) throw new InvalidDataException("Scheduler state belongs to another platform.");
         if (Platform == "linux")
-            await Require("systemctl", ["--user", "disable", "--now", "skillsync.timer"], cancellation);
+            await Require("systemctl", ["--user", "disable", "--now", "skillsync.timer", "skillsync.service"], cancellation);
         else if (Platform == "osx")
             await Require("launchctl", ["bootout", (await Domain(cancellation)) + "/io.skillsync.sync"], cancellation);
         else await Require("schtasks.exe", ["/Delete", "/TN", TaskName, "/F"], cancellation);

@@ -38,7 +38,7 @@ internal static class NativeLifecycle
         if (OperatingSystem.IsWindows())
         {
             var log = Path.Combine(home, ".skillsync/maintenance.log");
-            await WaitAsync(() => File.Exists(log));
+            await WaitAsync(() => File.Exists(log) && (File.ReadAllText(log).Contains("Completed") || File.ReadAllText(log).Contains("Failed:")));
             Check(File.ReadAllText(log).Contains("Completed"), "Deferred update failed: " + File.ReadAllText(log) + update.Output + update.Error);
         }
         var version = await install.CliAsync(home, "--version");

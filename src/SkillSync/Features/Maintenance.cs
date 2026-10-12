@@ -26,9 +26,9 @@ public sealed class Maintenance(LocalFiles files, StateStore states, Uninstall u
         var path = files.At($".skillsync/maintenance/{id}.ps1");
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var log = files.At(".skillsync/maintenance.log");
-        File.WriteAllText(path, "$ErrorActionPreference='Stop'\ntry {\n" +
+        File.WriteAllText(path, $"$ErrorActionPreference='Stop'\n'Pending' | Out-File -LiteralPath {Ps(log)}\ntry {{\n" +
             $"Wait-Process -Id {Environment.ProcessId} -ErrorAction SilentlyContinue\n{body}\n" +
-            $"'Completed' | Out-File -LiteralPath {Ps(log)}\n}} catch {{ $_.Exception.Message | Out-File -LiteralPath {Ps(log)} }}\n" +
+            $"'Completed' | Out-File -Append -LiteralPath {Ps(log)}\n}} catch {{ ('Failed: ' + $_.Exception.Message) | Out-File -Append -LiteralPath {Ps(log)} }}\n" +
             $"Remove-Item -LiteralPath {Ps(path)} -Force\n", new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
         var start = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe"))
             { UseShellExecute = false, CreateNoWindow = true };
@@ -56,7 +56,8 @@ public sealed class Maintenance(LocalFiles files, StateStore states, Uninstall u
             using (var target = File.Create(script)) await input.CopyToAsync(target, token);
             if (OperatingSystem.IsWindows())
             {
-                DeferWindows($"& {Ps(script)} -Version {Ps(release)} -InstallDir {Ps(Path.GetDirectoryName(executable)!)} -NoPathUpdate\nif ($LASTEXITCODE -ne 0) {{ throw 'Update failed; existing binary was kept.' }}\nRemove-Item -LiteralPath {Ps(script)} -Force");
+                var shell = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe");
+                DeferWindows($"& {Ps(shell)} -NoProfile -NonInteractive -ExecutionPolicy Bypass -File {Ps(script)} -Version {Ps(release)} -InstallDir {Ps(Path.GetDirectoryName(executable)!)} -NoPathUpdate *> {Ps(files.At(".skillsync/maintenance.log"))}\nif ($LASTEXITCODE -ne 0) {{ throw 'Update failed; existing binary was kept.' }}\nRemove-Item -LiteralPath {Ps(script)} -Force");
                 output.Writer.WriteLine("Update queued after this process exits. Result: ~/.skillsync/maintenance.log.");
             }
             else

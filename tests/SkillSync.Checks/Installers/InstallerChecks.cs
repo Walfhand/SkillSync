@@ -111,6 +111,17 @@ internal static class InstallerChecks
             var repeated = await fixture.InstallAsync();
             Check(repeated.Exit == 0, repeated.Output + repeated.Error);
             Check(File.ReadAllText(receipts[0]) == first, "Repeated install lost PATH ownership.");
+        }),
+        ("Unix installer recognizes its PATH marker from releases predating receipts", async () =>
+        {
+            if (OperatingSystem.IsWindows()) return;
+            await using var fixture = new InstallerFixture();
+            var quote = "'" + fixture.InstallDir.Replace("'", "'\\''") + "'";
+            var line = $"case \":$PATH:\" in *:{quote}:*) ;; *) export PATH={quote}:\"$PATH\" ;; esac";
+            File.WriteAllText(fixture.Profile, "\n# SkillSync\n" + line + "\n");
+            Check((await fixture.InstallAsync()).Exit == 0, "Migration installation failed.");
+            using var receipt = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Directory.GetFiles(fixture.InstallDir, ".skillsync-path-*.json").Single()));
+            Check(receipt.RootElement.GetProperty("pathAdded").GetBoolean(), "Previous SkillSync PATH marker was not adopted.");
         })
     ];
 }
