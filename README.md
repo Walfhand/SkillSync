@@ -94,9 +94,9 @@ skillsync sync
 skillsync status
 ```
 
-Pour mettre à jour cette préversion : `skillsync update --version v0.1.0-preview.5`. Sous Windows, le remplacement attend la fin du processus ; le résultat est écrit dans `~/.skillsync/maintenance.log`. Arrêtez les processus `watch` ouverts avant une mise à jour.
+Pour mettre à jour cette préversion : `skillsync update --version v0.1.0-preview.5`. Sous Windows, le remplacement attend la fin du processus ; le résultat est écrit dans `~/.skillsync/maintenance.log`. Arrêtez les processus `watch` ouverts et désactivez `autosync` avant une mise à jour sous Windows pour libérer le binaire ; réactivez ensuite la tâche si nécessaire.
 
-`skillsync remove` retire les skills gérés non modifiés, la tâche de synchronisation, les entrées PATH créées par les installateurs et le binaire. Les fichiers personnels et les sauvegardes sont conservés. Les entrées PATH préexistantes ne sont pas retirées. Les versions jusqu'à preview.4 ne conservaient pas la propriété des entrées PATH : relancez le nouvel installateur pour enregistrer les profils avant d'utiliser la maintenance automatique.
+`skillsync remove` retire les skills gérés non modifiés, la tâche de synchronisation, les entrées PATH créées par les installateurs et le binaire. Les fichiers personnels et les sauvegardes sont conservés. Les entrées PATH préexistantes ne sont pas retirées. Les versions jusqu'à preview.4 ne conservaient pas la propriété des entrées PATH : relancez le nouvel installateur pour enregistrer les profils avant d'utiliser la maintenance automatique. Sous Windows, une entrée PATH déjà présente avant les reçus peut nécessiter un retrait manuel.
 
 ## Alternative : installer comme outil .NET
 
@@ -275,6 +275,12 @@ src/SkillSync/
     Status.cs                 Inspection de l'état local
     Watch.cs                  Synchronisation périodique
     Uninstall.cs              Retrait des skills gérés
+    Selection.cs              Catalogue, sélection et révision épinglée
+    Authoring.cs              Création et validation locale
+    Propose.cs                Contribution Git et PR GitHub
+    Backups.cs                Retour arrière et nettoyage
+    AutoSync.cs               Commandes de planification
+    Maintenance.cs            Mise à jour et retrait de la CLI
   Registry/
     GitRegistry.cs            Accès Git et lecture des fichiers du registre
     SkillCatalog.cs           Découverte des skills dans les catégories
@@ -288,6 +294,9 @@ src/SkillSync/
     LocalFiles.cs             Chemins sûrs, verrou, empreintes et écritures JSON
     StateStore.cs             Lecture et validation de l'état d'installation
     SyncState.cs              Données persistées d'une installation
+  Scheduling/                 Définitions et opérations natives des planificateurs
+  Maintenance/                Propriété des entrées PATH et reçus d'installation
+  Runtime/                    Exécution bornée et annulable des outils externes
   Agents/
     AgentTargets.cs           Agents pris en charge et destinations
 ```

@@ -72,6 +72,25 @@ internal static class SchedulingChecks
                 ["verify", f.Path(".config/systemd/user/skillsync.service"), f.Path(".config/systemd/user/skillsync.timer")],
                 null, CancellationToken.None);
             Check(result.ExitCode == 0, result.Error);
+        }),
+        ("failed scheduler registration attempts native cleanup and keeps no enabled metadata", async () =>
+        {
+            using var f = new Fixture();
+            var calls = new List<string[]>();
+            var failed = false;
+            var scheduler = new AutoSyncScheduler(f.Files, (command, arguments, _, _) =>
+            {
+                calls.Add(arguments);
+                if (!failed && (arguments.Contains("enable") || arguments.Contains("bootstrap") || arguments.Contains("/Create")))
+                {
+                    failed = true;
+                    return Task.FromResult(new SkillSync.Runtime.CommandResult(1, "", "registration failed"));
+                }
+                return Task.FromResult(new SkillSync.Runtime.CommandResult(0, command == "id" ? "501" : "", ""));
+            });
+            f.Write("bin/skillsync", "fixture");
+            await Reject(() => scheduler.EnableAsync(f.Path("bin/skillsync"), 7, CancellationToken.None), "failed");
+            Check(scheduler.Read() is null && calls.Any(args => args.Contains("disable") || args.Contains("bootout") || args.Contains("/Delete")), "Failed registration left native job configuration behind.");
         })
     ];
 }

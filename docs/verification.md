@@ -28,3 +28,14 @@ Références officielles :
 [Codex](https://learn.chatgpt.com/docs/build-skills),
 [Claude Code](https://code.claude.com/docs/en/skills),
 [Cursor](https://cursor.com/help/customization/skills).
+
+La CI valide aussi les exécutables sur Linux, Windows et macOS, en x64 et ARM64.
+Chaque runner installe un vrai binaire depuis un serveur HTTP local, active une
+tâche native sur son compte éphémère, attend une synchronisation réussie, retire
+la tâche, met à jour le binaire et effectue le retrait complet. Les profils de
+shell et les dossiers de skills restent temporaires ; les tâches natives sont
+créées uniquement sur les runners éphémères, jamais sur la machine de développement.
+
+Les tests de contribution utilisent un vrai registre local pour les validations
+et un exécuteur simulé pour vérifier la création de branche, le push et les
+arguments GitHub. Ils ne publient pas de PR de test sur un dépôt externe.

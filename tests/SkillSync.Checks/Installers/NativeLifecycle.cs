@@ -12,6 +12,8 @@ internal static class NativeLifecycle
         var home = Path.Combine(install.Root, "isolated home"); Directory.CreateDirectory(home);
         var installed = await install.InstallAsync();
         Check(installed.Exit == 0, installed.Output + installed.Error);
+        var originalVersion = await install.CliAsync(home, "--version");
+        Check(originalVersion.Exit == 0, originalVersion.Output + originalVersion.Error);
         var init = await install.CliAsync(home, "init", registry.Repo);
         Check(init.Exit == 0, init.Output + init.Error);
         if (Environment.GetEnvironmentVariable("SKILLSYNC_TEST_SCHEDULER") == "1")
@@ -42,7 +44,7 @@ internal static class NativeLifecycle
             Check(File.ReadAllText(log).Contains("Completed"), "Deferred update failed: " + File.ReadAllText(log) + update.Output + update.Error);
         }
         var version = await install.CliAsync(home, "--version");
-        Check(version.Exit == 0 && version.Output.Contains("preview.5"), "Updated executable does not launch.");
+        Check(version.Exit == 0 && version.Output == originalVersion.Output && install.Requests == 4, "Updated executable does not match the downloaded release.");
         var remove = await install.CliAsync(home, "remove");
         Check(remove.Exit == 0, remove.Output + remove.Error);
         await WaitAsync(() => !File.Exists(install.Binary));

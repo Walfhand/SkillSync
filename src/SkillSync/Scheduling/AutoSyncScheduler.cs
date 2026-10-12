@@ -64,6 +64,14 @@ public sealed class AutoSyncScheduler(LocalFiles files,
         }
         catch
         {
+            // Registration may have succeeded before a later command failed.
+            try
+            {
+                if (Platform == "linux") await Run("systemctl", ["--user", "disable", "--now", "skillsync.timer", "skillsync.service"], CancellationToken.None);
+                else if (Platform == "osx") await Run("launchctl", ["bootout", (await Domain(CancellationToken.None)) + "/io.skillsync.sync"], CancellationToken.None);
+                else await Run("schtasks.exe", ["/Delete", "/TN", TaskName, "/F"], CancellationToken.None);
+            }
+            catch (Exception cleanup) when (cleanup is IOException or System.ComponentModel.Win32Exception or OperationCanceledException) { }
             foreach (var relative in definitions.Keys) File.Delete(files.At(relative));
             throw;
         }
