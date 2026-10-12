@@ -84,6 +84,7 @@ public sealed class Maintenance(LocalFiles files, StateStore states, Uninstall u
             PathOwnership.Read(executable);
             if (states.Read() is { Uninstalled: false }) uninstall.Execute();
             using var runLock = files.Lock();
+            using var schedulerLock = files.Lock(".skillsync/scheduler.lock");
             await scheduler.DisableAsync(token);
             PathOwnership.Remove(executable);
             if (OperatingSystem.IsWindows()) DeferWindows($"Remove-Item -LiteralPath {Ps(executable)} -Force");

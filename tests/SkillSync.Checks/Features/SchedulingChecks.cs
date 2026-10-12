@@ -91,6 +91,14 @@ internal static class SchedulingChecks
             f.Write("bin/skillsync", "fixture");
             await Reject(() => scheduler.EnableAsync(f.Path("bin/skillsync"), 7, CancellationToken.None), "failed");
             Check(scheduler.Read() is null && calls.Any(args => args.Contains("disable") || args.Contains("bootout") || args.Contains("/Delete")), "Failed registration left native job configuration behind.");
+        }),
+        ("scheduler configuration lock does not block a synchronization starting immediately at login", () =>
+        {
+            using var f = new Fixture();
+            using var scheduler = f.Files.Lock(".skillsync/scheduler.lock");
+            using var synchronization = f.Files.Lock();
+            Check(File.Exists(f.Path(".skillsync/scheduler.lock")) && File.Exists(f.Path(".skillsync/run.lock")), "Scheduler and synchronization share a lock.");
+            return Task.CompletedTask;
         })
     ];
 }

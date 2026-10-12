@@ -19,14 +19,15 @@ public sealed class AutoSync(LocalFiles files, StateStore states, AutoSyncSchedu
             var executable = Environment.ProcessPath!;
             if (Path.GetFileNameWithoutExtension(executable) != "skillsync")
                 throw new InvalidOperationException("Install the standalone CLI before enabling auto-sync.");
-            using var runLock = files.Lock();
+            using var runLock = files.Lock(".skillsync/scheduler.lock");
+            states.Require();
             await scheduler.EnableAsync(executable, minutes, token);
             output.Writer.WriteLine($"Auto-sync enabled every {minutes} minutes.");
         }, token));
         var disable = new Command("disable", "Remove the scheduled synchronization job.");
         disable.SetAction(async (_, token) => await output.ExecuteAsync(async () =>
         {
-            using var runLock = files.Lock(); await scheduler.DisableAsync(token);
+            using var runLock = files.Lock(".skillsync/scheduler.lock"); await scheduler.DisableAsync(token);
             output.Writer.WriteLine("Auto-sync disabled.");
         }, token));
         var status = new Command("status", "Inspect the scheduler and the last synchronization attempt.");

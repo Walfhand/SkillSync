@@ -67,8 +67,8 @@ Prérequis : Git. Aucun SDK ou runtime .NET n'est nécessaire. Les scripts tél�
 Sous Linux ou macOS, avec Bash ou Zsh :
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Walfhand/SkillSync/v0.1.0-preview.5/scripts/install.sh -o /tmp/skillsync-install.sh
-bash /tmp/skillsync-install.sh --version v0.1.0-preview.5
+curl -fsSL https://raw.githubusercontent.com/Walfhand/SkillSync/v0.1.0-preview.6/scripts/install.sh -o /tmp/skillsync-install.sh
+bash /tmp/skillsync-install.sh --version v0.1.0-preview.6
 ```
 
 Le binaire est installé dans `~/.local/bin`. Le script ajoute ce dossier au PATH dans `~/.bashrc`, `~/.bash_profile` sous macOS avec Bash, ou `~/.zshrc` avec Zsh (en respectant `ZDOTDIR`). Ouvrez ensuite un nouveau terminal. Vous pouvez personnaliser les destinations avec `--install-dir /chemin/absolu` et `--profile /chemin/absolu/vers/le/profil`. Pour un autre shell, installez manuellement le binaire et configurez son PATH.
@@ -76,8 +76,8 @@ Le binaire est installé dans `~/.local/bin`. Le script ajoute ce dossier au PAT
 Sous Windows, dans PowerShell :
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Walfhand/SkillSync/v0.1.0-preview.5/scripts/install.ps1 -OutFile "$env:TEMP\skillsync-install.ps1"
-powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\skillsync-install.ps1" -Version v0.1.0-preview.5
+Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Walfhand/SkillSync/v0.1.0-preview.6/scripts/install.ps1 -OutFile "$env:TEMP\skillsync-install.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\skillsync-install.ps1" -Version v0.1.0-preview.6
 ```
 
 Le binaire est installé dans `%LOCALAPPDATA%\SkillSync\bin`, ajouté au Path utilisateur. Ouvrez ensuite un nouveau terminal. `-InstallDir` change la destination et `-NoPathUpdate` conserve le PATH existant. Le changement d'ExecutionPolicy ci-dessus concerne uniquement le processus d'installation.
@@ -94,7 +94,7 @@ skillsync sync
 skillsync status
 ```
 
-Pour mettre à jour cette préversion : `skillsync update --version v0.1.0-preview.5`. Sous Windows, le remplacement attend la fin du processus ; le résultat est écrit dans `~/.skillsync/maintenance.log`. Arrêtez les processus `watch` ouverts et désactivez `autosync` avant une mise à jour sous Windows pour libérer le binaire ; réactivez ensuite la tâche si nécessaire.
+Pour mettre à jour cette préversion : `skillsync update --version v0.1.0-preview.6`. Sous Windows, le remplacement attend la fin du processus ; le résultat est écrit dans `~/.skillsync/maintenance.log`. Arrêtez les processus `watch` ouverts et désactivez `autosync` avant une mise à jour sous Windows pour libérer le binaire ; réactivez ensuite la tâche si nécessaire.
 
 `skillsync remove` retire les skills gérés non modifiés, la tâche de synchronisation, les entrées PATH créées par les installateurs et le binaire. Les fichiers personnels et les sauvegardes sont conservés. Les entrées PATH préexistantes ne sont pas retirées. Les versions jusqu'à preview.4 ne conservaient pas la propriété des entrées PATH : relancez le nouvel installateur pour enregistrer les profils avant d'utiliser la maintenance automatique. Sous Windows, une entrée PATH déjà présente avant les reçus peut nécessiter un retrait manuel.
 
@@ -102,7 +102,7 @@ Pour mettre à jour cette préversion : `skillsync update --version v0.1.0-previ
 
 ```sh
 dotnet pack src/SkillSync --configuration Release --output artifacts/packages
-dotnet tool install --global SkillSync.Cli --version 0.1.0-preview.5 --add-source ./artifacts/packages
+dotnet tool install --global SkillSync.Cli --version 0.1.0-preview.6 --add-source ./artifacts/packages
 skillsync --help
 ```
 

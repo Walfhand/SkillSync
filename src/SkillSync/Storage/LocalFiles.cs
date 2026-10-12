@@ -70,11 +70,11 @@ public sealed class LocalFiles(string home)
         catch (DirectoryNotFoundException) { }
     }
 
-    public FileStream Lock()
+    public FileStream Lock(string relative = ".skillsync/run.lock")
     {
         Directory.CreateDirectory(Root);
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(Root, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        try { return new FileStream(At(".skillsync/run.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
+        try { return new FileStream(At(relative), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
         catch (IOException ex) { throw new IOException("Another SkillSync command may be running. Retry when it finishes.", ex); }
     }
 
