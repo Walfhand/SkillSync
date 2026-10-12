@@ -88,7 +88,7 @@ function Invoke-SkillSyncInstall([string]$ReleaseVersion, [string]$Directory, [b
             }
         }
         $destination = Join-Path $Directory 'skillsync.exe'
-        if ([IO.File]::Exists($destination)) { [IO.File]::Replace($candidate, $destination, $null) }
+        if ([IO.File]::Exists($destination)) { [IO.File]::Replace($candidate, $destination, [NullString]::Value) }
         else { [IO.File]::Move($candidate, $destination) }
         $candidate = $null
         $receipt = Join-Path $Directory '.skillsync-path-windows.json'

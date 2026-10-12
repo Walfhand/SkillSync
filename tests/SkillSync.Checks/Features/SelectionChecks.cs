@@ -71,6 +71,8 @@ internal static class SelectionChecks
             await f.Sync.ExecuteAsync();
             Check(f.Read(".agents/skills/review/SKILL.md").Contains("approved") && !f.Read(".agents/skills/review/SKILL.md").Contains("unapproved"), "Pinned revision drifted.");
             Check(f.Status.Execute().State.Commit == revision, "Pinned revision not recorded.");
+            Check(await CliApp.RunAsync(["select", "--follow-branch"], f.Home, output, error) == 0, error.ToString());
+            Check(f.Read(".agents/skills/review/SKILL.md").Contains("unapproved"), "Could not resume branch tracking.");
         })
     ];
 }

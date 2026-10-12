@@ -5,17 +5,26 @@ using SkillSync.Runtime;
 
 namespace SkillSync.Features;
 
-public sealed class Propose
+public sealed class Propose(Func<string, string[], string?, CancellationToken, Task<CommandResult>>? runner = null)
 {
     public async Task<string> ExecuteAsync(string directory, string title, string baseBranch, CancellationToken cancellation)
     {
         if (string.IsNullOrWhiteSpace(title) || title.Any(char.IsControl)) throw new ArgumentException("Provide a one-line proposal title.");
         directory = Path.GetFullPath(directory);
         WorkingRegistry.Read(directory);
-        async Task<string> Git(params string[] args) => System.Text.Encoding.UTF8.GetString(await GitRegistry.RunAsync(
+        async Task<string> Git(params string[] args)
+        {
+            if (runner is not null)
+            {
+                var result = await runner("git", args, directory, cancellation);
+                if (result.ExitCode != 0) throw new IOException("Git proposal command failed.");
+                return result.Output;
+            }
+            return System.Text.Encoding.UTF8.GetString(await GitRegistry.RunAsync(
             ["-c", "core.hooksPath=" + Path.Combine(Path.GetTempPath(), "skillsync-no-hooks-" + Guid.NewGuid().ToString("N")),
              "-c", "core.fsmonitor=false", "-c", "protocol.allow=never", "-c", "protocol.https.allow=always",
              "-c", "protocol.ssh.allow=always", .. args], cancellation, directory));
+        }
         var pending = (await Git("status", "--porcelain=v1", "-z", "--untracked-files=all")).Split('\0', StringSplitOptions.RemoveEmptyEntries);
         if (pending.Length == 0) throw new InvalidOperationException("No local changes to propose.");
         // Renames have a second NUL-separated path; refuse them rather than risk including unrelated files.
@@ -27,22 +36,22 @@ public sealed class Propose
             throw new InvalidOperationException("Start proposals from the requested base branch.");
         var source = (await Git("remote", "get-url", "origin")).Trim();
         RegistryConfig.ValidateSource(source);
-        var auth = await Commands.RunAsync("gh", ["auth", "status"], directory, cancellation);
+        var auth = await (runner ?? Commands.RunAsync)("gh", ["auth", "status"], directory, cancellation);
         if (auth.ExitCode != 0) throw new InvalidOperationException("Authenticate GitHub CLI with gh auth login first.");
         await Git("fetch", "--quiet", "--no-tags", "--no-recurse-submodules", "origin", baseBranch);
         if ((await Git("rev-parse", "HEAD")).Trim() != (await Git("rev-parse", "refs/remotes/origin/" + baseBranch)).Trim())
             throw new InvalidOperationException("Base branch must match origin before proposing; synchronize it first.");
         var branch = "skillsync/propose-" + Guid.NewGuid().ToString("N");
         await Git("switch", "-c", branch);
-        await Git("add", "--all", "--", "skills");
-        if (File.Exists(Path.Combine(directory, "skillsync.json"))) await Git("add", "--", "skillsync.json");
+        if (pending.Any(entry => entry[3..].StartsWith("skills/", StringComparison.Ordinal))) await Git("add", "--all", "--", "skills");
+        if (pending.Any(entry => entry[3..] == "skillsync.json")) await Git("add", "--all", "--", "skillsync.json");
         await Git("commit", "-m", title);
         await Git("push", "--set-upstream", "origin", branch);
         var body = Path.Combine(Path.GetTempPath(), "skillsync-proposal-" + Guid.NewGuid().ToString("N") + ".md");
         try
         {
             await File.WriteAllTextAsync(body, "Update the shared skill registry.\n\nValidation: skillsync validate passed before creating this proposal.\n", cancellation);
-            var result = await Commands.RunAsync("gh", ["pr", "create", "--draft", "--base", baseBranch, "--head", branch,
+            var result = await (runner ?? Commands.RunAsync)("gh", ["pr", "create", "--draft", "--base", baseBranch, "--head", branch,
                 "--title", title, "--body-file", body], directory, cancellation);
             if (result.ExitCode != 0) throw new IOException($"Branch {branch} was pushed. PR creation failed; retry with gh pr create --head {branch}.");
             return result.Output.Trim();

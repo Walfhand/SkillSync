@@ -15,6 +15,7 @@ internal static class BackupChecks
             Directory.Delete(Path.Combine(f.Repo, "skills/removed"), true);
             f.Skill("review", "new"); f.Skill("added", "new"); f.Commit();
             await f.Sync.ExecuteAsync();
+            await f.Sync.ExecuteAsync();
             using var output = new StringWriter(); using var error = new StringWriter();
             Check(await CliApp.RunAsync(["rollback"], f.Home, output, error) == 0, error.ToString());
             Check(f.Read(".agents/skills/review/SKILL.md").Contains("old") && Directory.Exists(f.Path(".agents/skills/removed")), "Previous content not restored.");
@@ -37,7 +38,8 @@ internal static class BackupChecks
         {
             using var f = new Fixture(); f.Skill("review", "one"); f.Commit(); await f.Init.ExecuteAsync(f.Config);
             f.Skill("review", "two"); f.Commit(); var old = await f.Sync.ExecuteAsync();
-            f.Skill("review", "three"); f.Commit(); var current = await f.Sync.ExecuteAsync();
+            f.Skill("review", "three"); f.Commit(); var prunable = await f.Sync.ExecuteAsync();
+            f.Skill("review", "four"); f.Commit(); var current = await f.Sync.ExecuteAsync();
             var recovered = f.Path($".skillsync/transactions/{old.TransactionId}/recovered/notes.txt");
             Directory.CreateDirectory(Path.GetDirectoryName(recovered)!); File.WriteAllText(recovered, "personal");
             using var output = new StringWriter(); using var error = new StringWriter();
@@ -46,6 +48,7 @@ internal static class BackupChecks
             Check(await CliApp.RunAsync(["backups", "prune", "--keep", "0"], f.Home, output, error) != 0, "Prune ran without confirmation.");
             Check(await CliApp.RunAsync(["backups", "prune", "--keep", "0", "--yes"], f.Home, output, error) == 0, error.ToString());
             Check(File.Exists(recovered) && Directory.Exists(f.Path($".skillsync/transactions/{current.TransactionId}/backup")), "Prune destroyed recovery data.");
+            Check(!Directory.Exists(f.Path($".skillsync/transactions/{prunable.TransactionId}")), "Old backup was not actually pruned.");
         })
     ];
 }

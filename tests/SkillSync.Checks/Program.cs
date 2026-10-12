@@ -4,6 +4,12 @@ using SkillSync.Checks.Installation;
 using SkillSync.Checks.Registry;
 using SkillSync.Checks.Installers;
 
+if (args is ["--native-lifecycle", var executable])
+{
+    await NativeLifecycle.RunAsync(executable);
+    return 0;
+}
+
 var checks = InitChecks.All.Concat(SyncChecks.All).Concat(RecoveryChecks.All)
     .Concat(LifecycleChecks.All).Concat(ValidationChecks.All).Concat(CliChecks.All).Concat(InstallerChecks.All)
     .Concat(SelectionChecks.All).Concat(BackupChecks.All).Concat(ContributionChecks.All).Concat(SchedulingChecks.All)

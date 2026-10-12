@@ -15,7 +15,7 @@ internal sealed class InstallerFixture : IAsyncDisposable
     private readonly HttpListener listener = new();
     private readonly Task server;
     public string Root { get; } = Path.Combine(Path.GetTempPath(), "skillsync-installer-" + Guid.NewGuid().ToString("N"));
-    public string InstallDir => Path.Combine(Root, "bin with spaces 'quotes'");
+    public string InstallDir => Path.Combine(Root, "bin with spaces 'quotes' é");
     public string Profile => Path.Combine(Root, "shell profile");
     public string Binary => Path.Combine(InstallDir, OperatingSystem.IsWindows() ? "skillsync.exe" : "skillsync");
     public static string Script => Path.Combine(ProjectRoot(), "scripts", OperatingSystem.IsWindows() ? "install.ps1" : "install.sh");
@@ -33,8 +33,9 @@ internal sealed class InstallerFixture : IAsyncDisposable
     private readonly byte[] archive;
     private readonly byte[] malformedArchive;
 
-    public InstallerFixture()
+    public InstallerFixture(byte[]? payload = null)
     {
+        if (payload is not null) Payload = payload;
         Directory.CreateDirectory(Root);
         var os = OperatingSystem.IsWindows() ? "win" : OperatingSystem.IsMacOS() ? "osx" : "linux";
         var architecture = RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm64" : "x64";
@@ -123,6 +124,22 @@ internal sealed class InstallerFixture : IAsyncDisposable
         }
         using var process = Process.Start(start)!;
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var output = process.StandardOutput.ReadToEndAsync(timeout.Token);
+        var error = process.StandardError.ReadToEndAsync(timeout.Token);
+        try { await process.WaitForExitAsync(timeout.Token); }
+        catch { if (!process.HasExited) process.Kill(entireProcessTree: true); throw; }
+        return (process.ExitCode, await output, await error);
+    }
+
+    public async Task<(int Exit, string Output, string Error)> CliAsync(string home, params string[] arguments)
+    {
+        var start = new ProcessStartInfo(Binary) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+        foreach (var argument in arguments) start.ArgumentList.Add(argument);
+        start.Environment["SKILLSYNC_HOME"] = home;
+        start.Environment["SKILLSYNC_RELEASE_BASE_URL"] = BaseUrl;
+        start.Environment["NO_PROXY"] = "127.0.0.1,localhost";
+        using var process = Process.Start(start)!;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         var output = process.StandardOutput.ReadToEndAsync(timeout.Token);
         var error = process.StandardError.ReadToEndAsync(timeout.Token);
         try { await process.WaitForExitAsync(timeout.Token); }

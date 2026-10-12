@@ -108,7 +108,9 @@ internal static class InstallerChecks
                 Check(receipt.RootElement.GetProperty("profile").GetString() == fixture.Profile, "Receipt lost shell profile.");
                 Check(receipt.RootElement.GetProperty("pathAdded").GetBoolean(), "Installer did not own its new PATH entry.");
             }
-            Check((await fixture.InstallAsync()).Exit == 0 && File.ReadAllText(receipts[0]) == first, "Repeated install lost PATH ownership.");
+            var repeated = await fixture.InstallAsync();
+            Check(repeated.Exit == 0, repeated.Output + repeated.Error);
+            Check(File.ReadAllText(receipts[0]) == first, "Repeated install lost PATH ownership.");
         })
     ];
 }

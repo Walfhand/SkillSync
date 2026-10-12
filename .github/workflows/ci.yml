@@ -48,6 +48,12 @@ jobs:
           $extension = if ($platform -eq 'win') { '.exe' } else { '' }
           & "./artifacts/standalone/$platform-$architecture/skillsync$extension" --help
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exercise native install, update and complete removal
+        shell: pwsh
+        run: |
+          $extension = if ('${{ runner.os }}' -eq 'Windows') { '.exe' } else { '' }
+          dotnet run --project tests/SkillSync.Checks --configuration Release --no-build -- --native-lifecycle "./artifacts/standalone/${{ matrix.rid }}/skillsync$extension"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Package release archives and SHA-256 checksums
         shell: pwsh
         run: |
