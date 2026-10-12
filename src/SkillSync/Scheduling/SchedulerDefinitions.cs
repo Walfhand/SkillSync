@@ -11,7 +11,7 @@ public static class SchedulerDefinitions
         static string Ps(string text) => "'" + text.Replace("'", "''") + "'";
         if (platform == "linux") return new()
         {
-            [".config/systemd/user/skillsync.service"] = $"# Managed by SkillSync\n[Unit]\nDescription=Synchronize team skills\n[Service]\nType=oneshot\nEnvironment={Unit("SKILLSYNC_HOME=" + home)}\nEnvironment={Unit("PATH=" + searchPath)}\nExecStart={Unit(executable.Replace("$", "$$"))} sync --scheduled\n",
+            [".config/systemd/user/skillsync.service"] = $"# Managed by SkillSync\n[Unit]\nDescription=Synchronize team skills\n[Service]\nType=oneshot\nEnvironment={Unit("SKILLSYNC_HOME=" + home)}\nEnvironment={Unit("PATH=" + searchPath)}\nExecStart=/usr/bin/env -- {Unit(executable.Replace("$", "$$"))} sync --scheduled\n",
             [".config/systemd/user/skillsync.timer"] = $"# Managed by SkillSync\n[Unit]\nDescription=Schedule team skill synchronization\n[Timer]\nOnStartupSec=15s\nOnUnitActiveSec={minutes}min\n[Install]\nWantedBy=timers.target\n"
         };
         if (platform == "osx") return new()

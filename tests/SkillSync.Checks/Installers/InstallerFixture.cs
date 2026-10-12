@@ -164,6 +164,7 @@ internal sealed class InstallerFixture : IAsyncDisposable
     {
         listener.Close();
         await server;
+        foreach (var file in Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories)) File.SetAttributes(file, FileAttributes.Normal);
         Directory.Delete(Root, recursive: true);
     }
 }

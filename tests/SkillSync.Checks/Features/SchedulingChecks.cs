@@ -58,6 +58,20 @@ internal static class SchedulingChecks
             await scheduler.DisableAsync(CancellationToken.None);
             Check(scheduler.Read() is null, "Disable left enabled metadata.");
             Check(!File.Exists(f.Path(".config/systemd/user/skillsync.timer")) && !File.Exists(f.Path("Library/LaunchAgents/io.skillsync.sync.plist")), "Disable left job files.");
+        }),
+        ("Linux scheduler units pass the native parser with quotes, percent and dollar signs in the executable path", async () =>
+        {
+            if (!OperatingSystem.IsLinux()) return;
+            using var f = new Fixture();
+            var executable = f.Path("bin \"quote\"%$value/skillsync");
+            f.Write("bin \"quote\"%$value/skillsync", "#!/bin/sh\nexit 0\n");
+            File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            var definitions = SchedulerDefinitions.Build("linux", executable, f.Home, 7, "user", "/usr/bin:/bin");
+            foreach (var (relative, text) in definitions) f.Write(relative, text);
+            var result = await SkillSync.Runtime.Commands.RunAsync("systemd-analyze",
+                ["verify", f.Path(".config/systemd/user/skillsync.service"), f.Path(".config/systemd/user/skillsync.timer")],
+                null, CancellationToken.None);
+            Check(result.ExitCode == 0, result.Error);
         })
     ];
 }
