@@ -67,8 +67,8 @@ Prérequis : Git. Aucun SDK ou runtime .NET n'est nécessaire. Les scripts tél�
 Sous Linux ou macOS, avec Bash ou Zsh :
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Walfhand/SkillSync/v0.1.0-preview.4/scripts/install.sh -o /tmp/skillsync-install.sh
-bash /tmp/skillsync-install.sh --version v0.1.0-preview.4
+curl -fsSL https://raw.githubusercontent.com/Walfhand/SkillSync/v0.1.0-preview.5/scripts/install.sh -o /tmp/skillsync-install.sh
+bash /tmp/skillsync-install.sh --version v0.1.0-preview.5
 ```
 
 Le binaire est installé dans `~/.local/bin`. Le script ajoute ce dossier au PATH dans `~/.bashrc`, `~/.bash_profile` sous macOS avec Bash, ou `~/.zshrc` avec Zsh (en respectant `ZDOTDIR`). Ouvrez ensuite un nouveau terminal. Vous pouvez personnaliser les destinations avec `--install-dir /chemin/absolu` et `--profile /chemin/absolu/vers/le/profil`. Pour un autre shell, installez manuellement le binaire et configurez son PATH.
@@ -76,8 +76,8 @@ Le binaire est installé dans `~/.local/bin`. Le script ajoute ce dossier au PAT
 Sous Windows, dans PowerShell :
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Walfhand/SkillSync/v0.1.0-preview.4/scripts/install.ps1 -OutFile "$env:TEMP\skillsync-install.ps1"
-powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\skillsync-install.ps1" -Version v0.1.0-preview.4
+Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Walfhand/SkillSync/v0.1.0-preview.5/scripts/install.ps1 -OutFile "$env:TEMP\skillsync-install.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\skillsync-install.ps1" -Version v0.1.0-preview.5
 ```
 
 Le binaire est installé dans `%LOCALAPPDATA%\SkillSync\bin`, ajouté au Path utilisateur. Ouvrez ensuite un nouveau terminal. `-InstallDir` change la destination et `-NoPathUpdate` conserve le PATH existant. Le changement d'ExecutionPolicy ci-dessus concerne uniquement le processus d'installation.
@@ -94,13 +94,15 @@ skillsync sync
 skillsync status
 ```
 
-Pour retirer l'installation, exécutez d'abord `skillsync uninstall`, puis supprimez le binaire installé et l'entrée PATH ajoutée par le script. Les sauvegardes restent conservées.
+Pour mettre à jour cette préversion : `skillsync update --version v0.1.0-preview.5`. Sous Windows, le remplacement attend la fin du processus ; le résultat est écrit dans `~/.skillsync/maintenance.log`. Arrêtez les processus `watch` ouverts avant une mise à jour.
+
+`skillsync remove` retire les skills gérés non modifiés, la tâche de synchronisation, les entrées PATH créées par les installateurs et le binaire. Les fichiers personnels et les sauvegardes sont conservés. Les entrées PATH préexistantes ne sont pas retirées. Les versions jusqu'à preview.4 ne conservaient pas la propriété des entrées PATH : relancez le nouvel installateur pour enregistrer les profils avant d'utiliser la maintenance automatique.
 
 ## Alternative : installer comme outil .NET
 
 ```sh
 dotnet pack src/SkillSync --configuration Release --output artifacts/packages
-dotnet tool install --global SkillSync.Cli --version 0.1.0-preview.4 --add-source ./artifacts/packages
+dotnet tool install --global SkillSync.Cli --version 0.1.0-preview.5 --add-source ./artifacts/packages
 skillsync --help
 ```
 
@@ -120,8 +122,78 @@ skillsync uninstall
 - `init` connecte la bibliothèque et réalise la première synchronisation. Sans `--agent`, les trois agents sont ciblés. Une configuration différente nécessite d'abord une désinstallation.
 - `sync` récupère la branche et applique un commit Git précis. Une panne réseau conserve les skills déjà installés ; aucune nouvelle installation hors connexion n'est tentée.
 - `status` indique le commit, la dernière synchronisation et les copies manquantes ou modifiées.
-- `watch` synchronise immédiatement puis toutes les 15 minutes par défaut, pendant que le processus reste actif. `Ctrl+C` l'arrête. Aucun démarrage automatique avec la session de l'agent ou avec l'ordinateur n'est installé.
-- `uninstall` retire uniquement les skills gérés qui n'ont pas été modifiés. Les sauvegardes et les métadonnées restent dans `~/.skillsync/`. Supprimez ensuite le binaire autonome installé, ou utilisez `dotnet tool uninstall --global SkillSync.Cli` pour l'installation via .NET.
+- `watch` synchronise immédiatement puis toutes les 15 minutes par défaut, pendant que le processus reste actif. `Ctrl+C` l'arrête. Pour automatiser sans terminal ouvert, utilisez `autosync enable`.
+- `uninstall` retire uniquement les skills gérés non modifiés. `remove` retire aussi le planificateur, les entrées PATH appartenant aux installateurs et le binaire autonome. Les sauvegardes et métadonnées restent dans `~/.skillsync/`. Pour l'outil .NET, utilisez `dotnet tool uninstall --global SkillSync.Cli`.
+
+## Sélection et règles d'équipe
+
+```sh
+skillsync init git@github.com:mon-equipe/skills.git --category architecture --skill code-review --team backend
+skillsync list
+skillsync select --category architecture
+skillsync select --skill code-review pr-description
+skillsync select --all
+skillsync select --revision COMMIT_GIT_COMPLET
+skillsync select --follow-branch
+```
+
+La sélection est persistée. Les noms et catégories forment une union ; une catégorie inclut ses sous-catégories. Sans sélection, tous les skills non bloqués sont installés. Une sélection inconnue est refusée avant toute modification. Si un nom explicitement sélectionné disparaît du registre, modifiez la sélection pour reprendre la synchronisation.
+
+Le fichier facultatif `skillsync.json`, à la racine du registre, définit les équipes :
+
+```json
+{
+  "teams": {
+    "backend": {
+      "required": ["code-review"],
+      "recommended": ["pr-description"],
+      "blocked": ["legacy-deploy"]
+    }
+  }
+}
+```
+
+Les trois tableaux sont obligatoires et les noms doivent exister dans le registre. Un skill ne peut pas avoir plusieurs statuts dans une équipe. Les skills requis sont ajoutés à toute sélection ; les recommandations sont affichées par `list` ; les skills bloqués sont exclus de `--all` et refusés lorsqu'ils sont explicitement demandés. `select --team NOM` change l'équipe.
+
+Une équipe peut utiliser une branche protégée, par exemple `--branch approved`, pour distribuer uniquement les changements relus. `--revision` épingle un commit complet et immuable ; `select --follow-branch` reprend le suivi de la branche. L'approbation et les droits d'accès sont ceux de Git : ces conventions locales ne constituent pas un contrôle d'accès ni un mécanisme empêchant un utilisateur de changer sa configuration.
+
+## Synchronisation automatique
+
+```sh
+skillsync autosync enable --interval 15
+skillsync autosync status
+skillsync autosync disable
+```
+
+L'exécutable autonome utilise un timer systemd utilisateur sous Linux, un LaunchAgent sous macOS et une tâche utilisateur sous Windows. Les tâches s'exécutent à l'ouverture de session et périodiquement, sans privilèges administrateur. Sous Linux, une session systemd utilisateur fonctionnelle est requise. Git doit être accessible dans l'environnement de la tâche et l'authentification doit fonctionner sans interaction.
+
+`autosync status` interroge le planificateur et affiche le dernier résultat enregistré dans `~/.skillsync/last-sync.json`. Une panne réseau conserve les copies installées. `watch` reste disponible pour une synchronisation limitée à la durée d'un terminal.
+
+## Créer et proposer des skills
+
+Depuis un clone local de la bibliothèque :
+
+```sh
+skillsync new architecture-review --repo /chemin/du/registre --category architecture --description "Relire les décisions d'architecture."
+skillsync validate --repo /chemin/du/registre
+skillsync propose --repo /chemin/du/registre --title "Ajouter la revue d'architecture" --base main
+```
+
+`new` crée un dossier et son `SKILL.md` sans écraser un skill existant. Ajoutez les scripts, références et ressources nécessaires dans ce dossier. `validate` inspecte les fichiers locaux, y compris les modifications non commitées et les règles d'équipe.
+
+`propose` nécessite GitHub CLI (`gh`) authentifiée, un remote `origin` HTTPS/SSH et une identité Git configurée. La branche locale de base doit correspondre à `origin` ; les modifications en attente doivent appartenir à `skills/` ou à `skillsync.json`. Les renommages sont refusés pour éviter d'inclure des fichiers inattendus. La commande valide la bibliothèque, crée une branche, commit les modifications, la pousse et ouvre une PR en brouillon. Si la création de PR échoue après le push, la branche est conservée et le message indique comment réessayer. Les hooks Git sont désactivés pendant ces opérations. Les autres hébergeurs Git restent utilisables pour synchroniser ; l'ouverture de PR est actuellement spécifique à GitHub.
+
+## Sauvegardes et retour arrière
+
+```sh
+skillsync backups list
+skillsync rollback
+skillsync backups prune --keep 10 --yes
+```
+
+`rollback` restaure l'installation précédant le dernier changement de contenu. Une synchronisation sans changement ne remplace pas ce point de retour. Les copies et sauvegardes sont vérifiées avant restauration ; les modifications locales bloquent l'opération. La révision restaurée est épinglée pour empêcher la tâche automatique de réappliquer immédiatement la version annulée. Utilisez `select --follow-branch` pour reprendre les mises à jour.
+
+Le nettoyage exige `--yes`. Il conserve le point de retour actuel et les transactions contenant des fichiers récupérés après interruption. Les anciennes sauvegardes sans métadonnées de restauration ne sont pas supprimées automatiquement.
 
 ## Format du registre
 
@@ -161,7 +233,7 @@ description: Review a code change for bugs and regressions. Use when a code revi
 Read the change and its callers. Report actionable issues with file locations.
 ```
 
-La bibliothèque distribue tous les skills découverts sous `skills/`. Supprimer entièrement un skill du registre le retire des destinations gérées à la prochaine synchronisation, après sauvegarde. Retirer seulement son `SKILL.md` en laissant d'autres fichiers ordinaires provoque une erreur et conserve les installations existantes. Une bibliothèque vide retire tous ses skills gérés. Les marketplaces Claude, le filtrage par catégorie, la sélection par équipe et les statuts obligatoire/recommandé/bloqué ne sont pas implémentés dans cette version.
+La bibliothèque distribue tous les skills découverts sous `skills/`. Supprimer entièrement un skill du registre le retire des destinations gérées à la prochaine synchronisation, après sauvegarde. Retirer seulement son `SKILL.md` en laissant d'autres fichiers ordinaires provoque une erreur et conserve les installations existantes. Une bibliothèque vide retire tous ses skills gérés. Les catégories, sélections et règles d'équipe sont gérées par la CLI. Les marketplaces propres aux agents ne sont pas générées.
 
 Limites : 1000 fichiers et 25 MiB sous `skills/` par bibliothèque, README des catégories compris ; 5 MiB par fichier, 128 KiB par `SKILL.md` d'entrée, frontmatter imbriqué à 32 niveaux au maximum. Les alias YAML, liens symboliques, sous-modules, chemins non portables et collisions de casse sont refusés. Git LFS n'est pas développé : ses fichiers restent des pointeurs Git.
 
@@ -171,7 +243,7 @@ Les collisions avec des skills personnels et les modifications locales d'un skil
 
 Les anciennes copies sont déplacées dans `~/.skillsync/transactions/<identifiant>/backup/`, avec leur chemin d'agent. Une interruption avant l'enregistrement de l'état déclenche une restauration à la prochaine commande. Les éventuels fichiers de la nouvelle installation sont conservés sous `recovered/` avant cette restauration. Un verrou empêche deux commandes SkillSync de modifier simultanément les installations.
 
-Les sauvegardes ne sont pas purgées automatiquement. Elles peuvent contenir du contenu privé et consommer de l'espace disque. Il n'y a pas encore de commande de retour arrière manuel ; conservez une sauvegarde avant une restauration à la main. Les écritures de plusieurs skills ne sont pas simultanément atomiques pour les autres applications : la récupération par journal protège les mises à jour interrompues. Évitez de synchroniser pendant qu'un agent exécute un script du skill.
+Les sauvegardes ne sont pas purgées automatiquement. Elles peuvent contenir du contenu privé et consommer de l'espace disque. Utilisez `backups prune` pour les nettoyer et `rollback` pour restaurer la précédente installation vérifiable. Les écritures de plusieurs skills ne sont pas simultanément atomiques pour les autres applications : la récupération par journal protège les mises à jour interrompues. Évitez de synchroniser pendant qu'un agent exécute un script du skill.
 
 ## Sécurité et compatibilité
 
@@ -232,6 +304,6 @@ dotnet run --project tests/SkillSync.Checks --configuration Release --no-build
 dotnet pack src/SkillSync --configuration Release --no-build --output artifacts/packages
 ```
 
-La CI exécute ces commandes sur Linux, Windows et macOS, teste les installateurs avec un serveur HTTP local et vérifie les archives de distribution. Elle produit six archives autonomes et leurs SHA-256 ; les tags de version les publient dans GitHub Releases. Les vérifications portent sur un vrai registre Git temporaire : installation, mise à jour, désinstallation, fichiers personnels, modifications locales, suppressions, panne réseau simulée, fichiers manquants, métadonnées invalides, liens malveillants et récupération d'interruption. La création d'un lien local est ignorée sous Windows lorsqu'elle nécessite des privilèges ; les liens suivis dans Git restent testés.
+La CI exécute ces commandes nativement sur les six couples Linux/Windows/macOS et x64/ARM64, teste les installateurs avec un serveur HTTP local et vérifie les archives de distribution et le cycle réel installation/mise à jour/retrait du binaire. Elle produit six archives autonomes et leurs SHA-256 ; les tags de version les publient dans GitHub Releases. Les vérifications portent sur un vrai registre Git temporaire : installation, mise à jour, désinstallation, fichiers personnels, modifications locales, suppressions, panne réseau simulée, fichiers manquants, métadonnées invalides, liens malveillants et récupération d'interruption. La création d'un lien local est ignorée sous Windows lorsqu'elle nécessite des privilèges ; les liens suivis dans Git restent testés.
 
-Les tests des installateurs couvrent les téléchargements, les erreurs de SHA-256, les archives malveillantes, les versions invalides, Git absent et le PATH sans doublon. Ils ne modifient jamais les profils ou le PATH utilisateur réels. Les prochaines étapes utiles sont les essais réels avec les trois agents, les intégrations aux planificateurs des trois OS, puis la gestion facultative des équipes et des versions approuvées.
+Les tests des installateurs couvrent les téléchargements, les erreurs de SHA-256, les archives malveillantes, les versions invalides, Git absent et le PATH sans doublon. Ils ne modifient jamais les profils ou le PATH utilisateur réels. Les essais réels des agents et leurs limites sont décrits dans [docs/verification.md](docs/verification.md). Pour isoler les essais, `SKILLSYNC_HOME` permet de choisir la racine des fichiers gérés ; cette variable ne change pas le dossier personnel du système ni les réglages des agents.

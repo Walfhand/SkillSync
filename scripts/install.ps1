@@ -6,6 +6,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
 function Get-SkillSyncPath([string]$Existing, [string]$Directory) {
     foreach ($entry in $Existing.Split(';')) {
@@ -19,7 +20,7 @@ function Invoke-SkillSyncInstall([string]$ReleaseVersion, [string]$Directory, [b
     if ($ReleaseVersion -ne 'latest' -and $ReleaseVersion -cnotmatch '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9]+([.-][A-Za-z0-9]+)*)?$') {
         throw 'Version must be latest or a tag such as v0.1.0-preview.4.'
     }
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    if (-not (Get-Command git -CommandType Application -ErrorAction SilentlyContinue)) {
         throw 'Git is required. Install Git, then run this installer again.'
     }
     if ($env:OS -ne 'Windows_NT') { throw 'Use install.sh on Linux and macOS.' }

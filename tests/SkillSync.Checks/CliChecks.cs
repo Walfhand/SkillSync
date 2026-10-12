@@ -86,6 +86,8 @@ internal static class CliChecks
             Check(exit == 1, "I/O failure did not return an error exit code.");
             Check(!error.ToString().TrimEnd('\r', '\n').Any(char.IsControl), "Untrusted control characters reached stderr.");
             Check(output.ToString() == "", "Error was sent to stdout.");
+            Check(await console.ExecuteAsync(() => throw new InvalidDataException("Invalid metadata"), CancellationToken.None) == 1,
+                "Invalid metadata escaped the CLI error handler.");
         })
     ];
 }

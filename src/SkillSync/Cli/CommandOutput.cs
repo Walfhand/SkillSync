@@ -21,7 +21,7 @@ public sealed class CommandOutput(TextWriter output, TextWriter error)
             error.WriteLine("Synchronization timed out. Existing skills were kept.");
             return 1;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException or
                                        ArgumentException or JsonException or YamlException or Win32Exception)
         {
             // Registry-controlled exception text must never become terminal escape sequences.

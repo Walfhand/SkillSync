@@ -63,7 +63,7 @@ public sealed class Maintenance(LocalFiles files, StateStore states, Uninstall u
             {
                 try
                 {
-                    var result = await Commands.RunAsync("/bin/bash", [script, "--version", release, "--install-dir", Path.GetDirectoryName(executable)!,
+                    var result = await Commands.RunAsync("/bin/bash", [script, "--version", release, "--install-dir", receipts[0].Receipt.Directory,
                         "--profile", receipts[0].Receipt.Profile!], null, token);
                     if (result.ExitCode != 0) throw new IOException("Update failed; existing binary was kept. " + result.Error);
                     output.Writer.WriteLine(result.Output);

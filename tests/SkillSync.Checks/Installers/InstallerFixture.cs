@@ -123,7 +123,7 @@ internal sealed class InstallerFixture : IAsyncDisposable
             start.Environment["PATH"] = empty;
         }
         using var process = Process.Start(start)!;
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Payload.Length > 1024 * 1024 ? 180 : 60));
         var output = process.StandardOutput.ReadToEndAsync(timeout.Token);
         var error = process.StandardError.ReadToEndAsync(timeout.Token);
         try { await process.WaitForExitAsync(timeout.Token); }

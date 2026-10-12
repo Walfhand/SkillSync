@@ -15,10 +15,12 @@ public static class PathOwnership
         return System.IO.Directory.GetFiles(directory, ".skillsync-path-*.json").Select(path =>
         {
             var receipt = files.ReadJson<InstallReceipt>(path) ?? throw new InvalidDataException("Missing installation receipt.");
-            if (!string.Equals(directory, receipt.Directory, comparer)) throw new InvalidDataException("Installation receipt belongs to another directory.");
+            if (receipt.Directory is null || !Path.IsPathFullyQualified(receipt.Directory) ||
+                !string.Equals(Canonical(directory), Canonical(receipt.Directory), comparer))
+                throw new InvalidDataException("Installation receipt belongs to another directory.");
             if (receipt.Profile is not null)
             {
-                var quote = "'" + directory.Replace("'", "'\\''") + "'";
+                var quote = "'" + receipt.Directory.Replace("'", "'\\''") + "'";
                 var expected = $"case \":$PATH:\" in *:{quote}:*) ;; *) export PATH={quote}:\"$PATH\" ;; esac";
                 if (!Path.IsPathFullyQualified(receipt.Profile) || receipt.Profile.Any(char.IsControl) || receipt.PathLine != expected)
                     throw new InvalidDataException("Invalid shell PATH receipt.");
@@ -29,6 +31,20 @@ public static class PathOwnership
                 throw new InvalidDataException("Invalid Windows PATH receipt.");
             return (path, receipt);
         }).ToArray();
+    }
+
+    private static string Canonical(string path)
+    {
+        var full = Path.GetFullPath(path);
+        var root = Path.GetPathRoot(full)!;
+        var current = root;
+        foreach (var part in full[root.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
+        {
+            current = Path.Combine(current, part);
+            var info = new DirectoryInfo(current);
+            if (info.LinkTarget is not null) current = info.ResolveLinkTarget(returnFinalTarget: true)!.FullName;
+        }
+        return OperatingSystem.IsMacOS() ? current.Normalize(System.Text.NormalizationForm.FormC) : current;
     }
 
     public static void Remove(string executable)
