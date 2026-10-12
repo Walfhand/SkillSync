@@ -1,25 +1,25 @@
 # SkillSync
 
-Première version d'un outil open source en **C# / .NET 10**, sous licence **MIT**, pour partager les skills d'une équipe entre Claude Code, Codex et Cursor.
+An early open source **C# / .NET 10** tool, licensed under **MIT**, for sharing a team's skills across Claude Code, Codex and Cursor.
 
-La distribution principale est un **exécutable autonome** : aucun SDK ni runtime .NET à installer sur la machine de l'utilisateur. **Git reste nécessaire** pour synchroniser la bibliothèque. Le SDK .NET sert uniquement à développer et compiler le projet.
+The primary distribution is a **standalone executable**: users do not need to install the .NET SDK or runtime. **Git is still required** to synchronize the library. The .NET SDK is only needed to develop and build the project.
 
-Le nom est provisoire. Le code est une nouvelle implémentation .NET, inspirée du besoin présenté par [SkillCrew](https://github.com/yoanbernabeu/skillcrew) ; ce projet n'est pas affilié à SkillCrew ou aux éditeurs des agents.
+The name is provisional. This is a new .NET implementation inspired by the need presented by [SkillCrew](https://github.com/yoanbernabeu/skillcrew); it is not affiliated with SkillCrew or the agent vendors.
 
-## Fonctionnement
+## How it works
 
-Un dépôt Git contient la bibliothèque de l'équipe. Chaque développeur connecte la CLI à ce dépôt. La CLI suit la branche choisie et installe des fichiers dans les dossiers documentés des agents :
+A Git repository holds the team's library. Each developer connects the CLI to that repository. The CLI follows the selected branch and installs files in the agents' documented directories:
 
 | Agent | Destination |
 | --- | --- |
-| Claude Code | `~/.claude/skills/<nom>/` |
-| Codex et Cursor | `~/.agents/skills/<nom>/` — une copie partagée |
+| Claude Code | `~/.claude/skills/<name>/` |
+| Codex and Cursor | `~/.agents/skills/<name>/` — one shared copy |
 
-Il n'y a aucun serveur, compte SkillSync, base de données ou appel à un modèle IA. Les membres collaborent avec les accès et les pull requests de leur hébergeur Git. Les skills propres à un projet peuvent rester directement dans le dépôt du projet.
+There is no server, SkillSync account, database or AI model call. Team members collaborate through their Git host's access controls and pull requests. Project-specific skills can stay directly in the project's repository.
 
-## Essayer depuis les sources
+## Try it from source
 
-Prérequis : SDK .NET 10 et Git dans le `PATH`. Les commandes ci-dessous partent de la racine du projet.
+Prerequisites: .NET 10 SDK and Git on the `PATH`. Run the following commands from the project root.
 
 ```sh
 dotnet build SkillSync.slnx
@@ -27,78 +27,78 @@ dotnet run --project tests/SkillSync.Checks
 dotnet run --project src/SkillSync -- --help
 ```
 
-Pour créer une bibliothèque d'essai, copiez `examples/registry` dans un nouveau dossier, initialisez-y un dépôt Git avec une branche `main`, puis créez son premier commit. Vous pouvez ensuite le publier sur votre hébergeur Git.
+To create a sample library, copy `examples/registry` to a new directory, initialize a Git repository there with a `main` branch, and create its first commit. You can then publish it to your Git host.
 
 ```sh
-dotnet run --project src/SkillSync -- init /chemin/absolu/vers/le-depot
+dotnet run --project src/SkillSync -- init /absolute/path/to/the-repository
 dotnet run --project src/SkillSync -- status
 dotnet run --project src/SkillSync -- sync
 dotnet run --project src/SkillSync -- watch --interval 15
 ```
 
-`init` et `sync` écrivent dans les dossiers personnels des agents. Les vérifications automatisées utilisent exclusivement des dossiers temporaires.
+`init` and `sync` write to the agents' personal directories. Automated checks use temporary directories exclusively.
 
-## Distribuer un exécutable autonome
+## Distribute a standalone executable
 
-Le profil `Standalone` embarque le runtime et les dépendances dans un exécutable `skillsync` (`skillsync.exe` sous Windows). La licence et le guide restent à côté du binaire. Il s'agit d'une publication self-contained en fichier unique ; le runtime peut extraire ses bibliothèques natives dans son cache au démarrage.
+The `Standalone` profile bundles the runtime and dependencies into a `skillsync` executable (`skillsync.exe` on Windows). The license and guide are kept alongside the binary. This is a self-contained, single-file deployment; the runtime may extract its native libraries to its cache at startup.
 
-Pour compiler, depuis une machine équipée du SDK .NET 10 :
+To build it on a machine with the .NET 10 SDK:
 
 ```sh
 dotnet publish src/SkillSync --configuration Release --runtime linux-x64 -p:PublishProfile=Standalone --output artifacts/standalone/linux-x64
 ```
 
-Remplacez `linux-x64` par la cible souhaitée :
+Replace `linux-x64` with the desired target:
 
-| Système | Intel/AMD 64 bits | ARM 64 bits |
+| System | Intel/AMD 64-bit | ARM 64-bit |
 | --- | --- | --- |
-| Linux avec glibc | `linux-x64` | `linux-arm64` |
+| Linux with glibc | `linux-x64` | `linux-arm64` |
 | Windows | `win-x64` | `win-arm64` |
 | macOS | `osx-x64` | `osx-arm64` |
 
-Chaque binaire cible son système et son architecture. Les dépendances natives de l'OS doivent être présentes ; Alpine/musl n'est pas une cible fournie. Le runtime embarqué se met à jour en recompilant et redistribuant l'outil avec un SDK à jour. Native AOT pourra être évalué si la taille du téléchargement ou le temps de démarrage le justifie.
+Each binary targets its own operating system and architecture. Native OS dependencies must be present; Alpine/musl is not a supplied target. Updating the bundled runtime requires rebuilding and redistributing the tool with an up-to-date SDK. Native AOT can be evaluated if download size or startup time warrants it.
 
-La CI produit ces six distributions, vérifie les installateurs et le lancement du binaire correspondant à chaque runner. Un tag de version publie les archives et leurs empreintes SHA-256 dans [GitHub Releases](https://github.com/Walfhand/SkillSync/releases).
+CI produces these six distributions and checks the installers and executable startup for each runner. A version tag publishes the archives and their SHA-256 checksums to [GitHub Releases](https://github.com/Walfhand/SkillSync/releases).
 
-## Installer dans le PATH
+## Installing on the PATH
 
-Prérequis : Git. Aucun SDK ou runtime .NET n'est nécessaire. Les scripts téléchargent l'archive adaptée au système et à l'architecture, vérifient son SHA-256 et installent le binaire dans un dossier utilisateur.
+Prerequisite: Git. No .NET SDK or runtime is required. The scripts download the archive matching the operating system and architecture, verify its SHA-256 checksum, and install the binary in a user directory.
 
-Sous Linux ou macOS, avec Bash ou Zsh :
+On Linux or macOS, with Bash or Zsh:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Walfhand/SkillSync/v0.1.0-preview.6/scripts/install.sh -o /tmp/skillsync-install.sh
 bash /tmp/skillsync-install.sh --version v0.1.0-preview.6
 ```
 
-Le binaire est installé dans `~/.local/bin`. Le script ajoute ce dossier au PATH dans `~/.bashrc`, `~/.bash_profile` sous macOS avec Bash, ou `~/.zshrc` avec Zsh (en respectant `ZDOTDIR`). Ouvrez ensuite un nouveau terminal. Vous pouvez personnaliser les destinations avec `--install-dir /chemin/absolu` et `--profile /chemin/absolu/vers/le/profil`. Pour un autre shell, installez manuellement le binaire et configurez son PATH.
+The binary is installed in `~/.local/bin`. The script adds that directory to the PATH in `~/.bashrc`, `~/.bash_profile` on macOS with Bash, or `~/.zshrc` with Zsh (respecting `ZDOTDIR`). Open a new terminal afterward. You can customize the destinations with `--install-dir /absolute/path` and `--profile /absolute/path/to/profile`. For another shell, install the binary manually and configure its PATH.
 
-Sous Windows, dans PowerShell :
+On Windows, in PowerShell:
 
 ```powershell
 Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Walfhand/SkillSync/v0.1.0-preview.6/scripts/install.ps1 -OutFile "$env:TEMP\skillsync-install.ps1"
 powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\skillsync-install.ps1" -Version v0.1.0-preview.6
 ```
 
-Le binaire est installé dans `%LOCALAPPDATA%\SkillSync\bin`, ajouté au Path utilisateur. Ouvrez ensuite un nouveau terminal. `-InstallDir` change la destination et `-NoPathUpdate` conserve le PATH existant. Le changement d'ExecutionPolicy ci-dessus concerne uniquement le processus d'installation.
+The binary is installed in `%LOCALAPPDATA%\SkillSync\bin` and added to the user Path. Open a new terminal afterward. `-InstallDir` changes the destination and `-NoPathUpdate` leaves the existing PATH unchanged. The ExecutionPolicy change above applies only to the installer process.
 
-Les scripts sont consultables avant exécution. Ils échouent sans remplacer le binaire si le téléchargement, le SHA-256 ou le contenu de l'archive est invalide. Relancer le script remplace la version et conserve une seule entrée PATH. Arrêtez d'abord tout processus `skillsync watch` avant une mise à jour.
+You can inspect the scripts before running them. They fail without replacing the binary if the download, SHA-256 checksum or archive contents are invalid. Running the script again replaces the version and keeps a single PATH entry. Stop any `skillsync watch` process before updating.
 
-La version est explicitement sélectionnée ici parce qu'il s'agit d'une préversion. Sans argument de version, le script utilise la dernière **version stable** de GitHub ; cette option nécessite qu'une version stable ait été publiée. Les archives peuvent aussi être téléchargées et installées manuellement depuis Releases.
+The version is selected explicitly here because this is a prerelease. Without a version argument, the script uses GitHub's latest **stable release**; this requires a stable release to have been published. Archives can also be downloaded and installed manually from Releases.
 
-Une fois installé, depuis n'importe quel dossier :
+Once installed, run these commands from any directory:
 
 ```sh
-skillsync init git@github.com:mon-equipe/skills.git
+skillsync init git@github.com:my-team/skills.git
 skillsync sync
 skillsync status
 ```
 
-Pour mettre à jour cette préversion : `skillsync update --version v0.1.0-preview.6`. Sous Windows, le remplacement attend la fin du processus ; le résultat est écrit dans `~/.skillsync/maintenance.log`. Arrêtez les processus `watch` ouverts et désactivez `autosync` avant une mise à jour sous Windows pour libérer le binaire ; réactivez ensuite la tâche si nécessaire.
+To update to this prerelease: `skillsync update --version v0.1.0-preview.6`. On Windows, replacement waits for the current process to exit; the result is written to `~/.skillsync/maintenance.log`. Stop open `watch` processes and disable `autosync` before updating on Windows to release the binary; re-enable the task afterward if needed.
 
-`skillsync remove` retire les skills gérés non modifiés, la tâche de synchronisation, les entrées PATH créées par les installateurs et le binaire. Les fichiers personnels et les sauvegardes sont conservés. Les entrées PATH préexistantes ne sont pas retirées. Les versions jusqu'à preview.4 ne conservaient pas la propriété des entrées PATH : relancez le nouvel installateur pour enregistrer les profils avant d'utiliser la maintenance automatique. Sous Windows, une entrée PATH déjà présente avant les reçus peut nécessiter un retrait manuel.
+`skillsync remove` removes unchanged managed skills, the synchronization task, PATH entries created by the installers, and the binary. Personal files and backups are preserved. Pre-existing PATH entries are not removed. Versions through preview.4 did not record PATH ownership: run the new installer again to record the profiles before using automatic maintenance. On Windows, a PATH entry that existed before receipts were introduced may require manual removal.
 
-## Alternative : installer comme outil .NET
+## Alternative: install as a .NET tool
 
 ```sh
 dotnet pack src/SkillSync --configuration Release --output artifacts/packages
@@ -106,40 +106,40 @@ dotnet tool install --global SkillSync.Cli --version 0.1.0-preview.6 --add-sourc
 skillsync --help
 ```
 
-Le package est local : il n'est pas publié sur NuGet. Son nom devra être vérifié avant une publication. Ce mode d'installation nécessite .NET 10, contrairement à la distribution autonome décrite ci-dessus.
+The package is local; it has not been published to NuGet. Its name must be checked before publication. This installation method requires .NET 10, unlike the standalone distribution described above.
 
-## Commandes
+## Commands
 
 ```sh
-skillsync init git@github.com:mon-equipe/skills.git
-skillsync init https://github.com/mon-equipe/skills.git --branch main --agent codex cursor
+skillsync init git@github.com:my-team/skills.git
+skillsync init https://github.com/my-team/skills.git --branch main --agent codex cursor
 skillsync sync
 skillsync status
 skillsync watch --interval 15
 skillsync uninstall
 ```
 
-- `init` connecte la bibliothèque et réalise la première synchronisation. Sans `--agent`, les trois agents sont ciblés. Une configuration différente nécessite d'abord une désinstallation.
-- `sync` récupère la branche et applique un commit Git précis. Une panne réseau conserve les skills déjà installés ; aucune nouvelle installation hors connexion n'est tentée.
-- `status` indique le commit, la dernière synchronisation et les copies manquantes ou modifiées.
-- `watch` synchronise immédiatement puis toutes les 15 minutes par défaut, pendant que le processus reste actif. `Ctrl+C` l'arrête. Pour automatiser sans terminal ouvert, utilisez `autosync enable`.
-- `uninstall` retire uniquement les skills gérés non modifiés. `remove` retire aussi le planificateur, les entrées PATH appartenant aux installateurs et le binaire autonome. Les sauvegardes et métadonnées restent dans `~/.skillsync/`. Pour l'outil .NET, utilisez `dotnet tool uninstall --global SkillSync.Cli`.
+- `init` connects the library and performs the first synchronization. Without `--agent`, all three agents are targeted. Changing the connection configuration requires uninstalling first.
+- `sync` fetches the branch and applies a specific Git commit. A network failure preserves already installed skills; no new installation is attempted offline.
+- `status` shows the commit, last synchronization, and any missing or modified copies.
+- `watch` synchronizes immediately and then every 15 minutes by default while the process is running. `Ctrl+C` stops it. Use `autosync enable` to automate synchronization without keeping a terminal open.
+- `uninstall` removes only unchanged managed skills. `remove` also removes the scheduler task, PATH entries owned by the installers, and the standalone binary. Backups and metadata remain in `~/.skillsync/`. For the .NET tool, use `dotnet tool uninstall --global SkillSync.Cli`.
 
-## Sélection et règles d'équipe
+## Selection and team rules
 
 ```sh
-skillsync init git@github.com:mon-equipe/skills.git --category architecture --skill code-review --team backend
+skillsync init git@github.com:my-team/skills.git --category architecture --skill code-review --team backend
 skillsync list
 skillsync select --category architecture
 skillsync select --skill code-review pr-description
 skillsync select --all
-skillsync select --revision COMMIT_GIT_COMPLET
+skillsync select --revision FULL_GIT_COMMIT
 skillsync select --follow-branch
 ```
 
-La sélection est persistée. Les noms et catégories forment une union ; une catégorie inclut ses sous-catégories. Sans sélection, tous les skills non bloqués sont installés. Une sélection inconnue est refusée avant toute modification. Si un nom explicitement sélectionné disparaît du registre, modifiez la sélection pour reprendre la synchronisation.
+The selection is persisted. Named skills and categories form a union; a category includes its subcategories. Without a selection, all non-blocked skills are installed. Unknown selections are rejected before any change. If an explicitly selected name disappears from the registry, change the selection to resume synchronization.
 
-Le fichier facultatif `skillsync.json`, à la racine du registre, définit les équipes :
+The optional `skillsync.json` file at the registry root defines teams:
 
 ```json
 {
@@ -153,11 +153,11 @@ Le fichier facultatif `skillsync.json`, à la racine du registre, définit les �
 }
 ```
 
-Les trois tableaux sont obligatoires et les noms doivent exister dans le registre. Un skill ne peut pas avoir plusieurs statuts dans une équipe. Les skills requis sont ajoutés à toute sélection ; les recommandations sont affichées par `list` ; les skills bloqués sont exclus de `--all` et refusés lorsqu'ils sont explicitement demandés. `select --team NOM` change l'équipe.
+All three arrays are required, and their names must exist in the registry. A skill cannot have multiple statuses within a team. Required skills are added to every selection; recommendations appear in `list`; blocked skills are excluded from `--all` and rejected when explicitly requested. `select --team NAME` changes the team.
 
-Une équipe peut utiliser une branche protégée, par exemple `--branch approved`, pour distribuer uniquement les changements relus. `--revision` épingle un commit complet et immuable ; `select --follow-branch` reprend le suivi de la branche. L'approbation et les droits d'accès sont ceux de Git : ces conventions locales ne constituent pas un contrôle d'accès ni un mécanisme empêchant un utilisateur de changer sa configuration.
+A team can use a protected branch, such as `--branch approved`, to distribute only reviewed changes. `--revision` pins a full, immutable commit; `select --follow-branch` resumes branch tracking. Approval and access rights are managed by Git: these local conventions are not access controls and do not prevent users from changing their configuration.
 
-## Synchronisation automatique
+## Automatic synchronization
 
 ```sh
 skillsync autosync enable --interval 15
@@ -165,25 +165,25 @@ skillsync autosync status
 skillsync autosync disable
 ```
 
-L'exécutable autonome utilise un timer systemd utilisateur sous Linux, un LaunchAgent sous macOS et une tâche utilisateur sous Windows. Les tâches s'exécutent à l'ouverture de session et périodiquement, sans privilèges administrateur. Sous Linux, une session systemd utilisateur fonctionnelle est requise. Git doit être accessible dans l'environnement de la tâche et l'authentification doit fonctionner sans interaction.
+The standalone executable uses a systemd user timer on Linux, a LaunchAgent on macOS, and a user task on Windows. Tasks run at login and periodically, without administrator privileges. Linux requires a working systemd user session. Git must be available in the task's environment, and authentication must work non-interactively.
 
-`autosync status` interroge le planificateur et affiche le dernier résultat enregistré dans `~/.skillsync/last-sync.json`. Une panne réseau conserve les copies installées. `watch` reste disponible pour une synchronisation limitée à la durée d'un terminal.
+`autosync status` queries the scheduler and displays the last result recorded in `~/.skillsync/last-sync.json`. A network failure preserves installed copies. `watch` remains available for synchronization limited to a terminal's lifetime.
 
-## Créer et proposer des skills
+## Create and propose skills
 
-Depuis un clone local de la bibliothèque :
+From a local clone of the library:
 
 ```sh
-skillsync new architecture-review --repo /chemin/du/registre --category architecture --description "Relire les décisions d'architecture."
-skillsync validate --repo /chemin/du/registre
-skillsync propose --repo /chemin/du/registre --title "Ajouter la revue d'architecture" --base main
+skillsync new architecture-review --repo /path/to/registry --category architecture --description "Review architecture decisions."
+skillsync validate --repo /path/to/registry
+skillsync propose --repo /path/to/registry --title "Add architecture review" --base main
 ```
 
-`new` crée un dossier et son `SKILL.md` sans écraser un skill existant. Ajoutez les scripts, références et ressources nécessaires dans ce dossier. `validate` inspecte les fichiers locaux, y compris les modifications non commitées et les règles d'équipe.
+`new` creates a directory and its `SKILL.md` without overwriting an existing skill. Add any required scripts, references and assets to that directory. `validate` inspects local files, including uncommitted changes and team rules.
 
-`propose` nécessite GitHub CLI (`gh`) authentifiée, un remote `origin` HTTPS/SSH et une identité Git configurée. La branche locale de base doit correspondre à `origin` ; les modifications en attente doivent appartenir à `skills/` ou à `skillsync.json`. Les renommages sont refusés pour éviter d'inclure des fichiers inattendus. La commande valide la bibliothèque, crée une branche, commit les modifications, la pousse et ouvre une PR en brouillon. Si la création de PR échoue après le push, la branche est conservée et le message indique comment réessayer. Les hooks Git sont désactivés pendant ces opérations. Les autres hébergeurs Git restent utilisables pour synchroniser ; l'ouverture de PR est actuellement spécifique à GitHub.
+`propose` requires an authenticated GitHub CLI (`gh`), an HTTPS/SSH `origin` remote, and a configured Git identity. The local base branch must match `origin`; pending changes must belong to `skills/` or `skillsync.json`. Renames are rejected to avoid including unexpected files. The command validates the library, creates a branch, commits the changes, pushes it, and opens a draft PR. If PR creation fails after the push, the branch is kept and the error explains how to retry. Git hooks are disabled during these operations. Other Git hosts remain usable for synchronization; PR creation currently supports GitHub only.
 
-## Sauvegardes et retour arrière
+## Backups and rollback
 
 ```sh
 skillsync backups list
@@ -191,20 +191,20 @@ skillsync rollback
 skillsync backups prune --keep 10 --yes
 ```
 
-`rollback` restaure l'installation précédant le dernier changement de contenu. Une synchronisation sans changement ne remplace pas ce point de retour. Les copies et sauvegardes sont vérifiées avant restauration ; les modifications locales bloquent l'opération. La révision restaurée est épinglée pour empêcher la tâche automatique de réappliquer immédiatement la version annulée. Utilisez `select --follow-branch` pour reprendre les mises à jour.
+`rollback` restores the installation preceding the last content change. A synchronization with no changes does not replace that restore point. Copies and backups are verified before restoration; local edits block the operation. The restored revision is pinned so the automatic task cannot immediately reapply the reverted version. Use `select --follow-branch` to resume updates.
 
-Le nettoyage exige `--yes`. Il conserve le point de retour actuel et les transactions contenant des fichiers récupérés après interruption. Les anciennes sauvegardes sans métadonnées de restauration ne sont pas supprimées automatiquement.
+Pruning requires `--yes`. It preserves the current restore point and transactions containing files recovered after an interruption. Older backups without restoration metadata are not deleted automatically.
 
-## Format du registre
+## Registry format
 
 ```text
 skills/
   architecture/
     ddd-review/
       SKILL.md
-      scripts/        (facultatif)
-      references/     (facultatif)
-      assets/         (facultatif)
+      scripts/        (optional)
+      references/     (optional)
+      assets/         (optional)
     solid-review/
       SKILL.md
   pull-request/
@@ -216,13 +216,13 @@ skills/
     SKILL.md
 ```
 
-Les catégories peuvent contenir plusieurs skills et plusieurs niveaux de sous-catégories. Une catégorie peut avoir un `README.md` pour sa documentation. Les skills directement sous `skills/` restent acceptés.
+Categories can contain multiple skills and multiple levels of subcategories. A category may have a `README.md` for its documentation. Skills directly under `skills/` are also supported.
 
-Un dossier contenant `SKILL.md` est un skill : tous ses fichiers et sous-dossiers lui appartiennent, y compris les éventuels modèles de `SKILL.md` dans ses ressources. Les autres fichiers doivent être placés dans un skill, à l'exception des `README.md` des catégories.
+A directory containing `SKILL.md` is a skill: all its files and subdirectories belong to it, including any `SKILL.md` templates in its resources. Other files must be placed inside a skill, except for category `README.md` files.
 
-Le champ `name` doit correspondre au dossier du skill, utiliser des minuscules, chiffres et tirets, et compter au maximum 64 caractères. `description` est obligatoire, non vide, et limitée à 1024 caractères. **Le nom doit être unique dans toute la bibliothèque**, même entre catégories.
+The `name` field must match the skill's directory, use lowercase letters, digits and hyphens, and contain at most 64 characters. `description` is required, must be non-empty, and is limited to 1024 characters. **The name must be unique across the entire library**, including across categories.
 
-Les catégories organisent le dépôt ; à l'installation, chaque skill est placé directement sous son nom dans le dossier de l'agent. Ainsi, `skills/architecture/ddd-review/` devient `~/.agents/skills/ddd-review/`. Déplacer un skill dans une autre catégorie sans modifier son nom ou ses fichiers conserve son identité et son installation.
+Categories organize the repository; at installation, each skill is placed directly under its name in the agent's directory. For example, `skills/architecture/ddd-review/` becomes `~/.agents/skills/ddd-review/`. Moving a skill to another category without changing its name or files preserves its identity and installation.
 
 ```md
 ---
@@ -233,79 +233,79 @@ description: Review a code change for bugs and regressions. Use when a code revi
 Read the change and its callers. Report actionable issues with file locations.
 ```
 
-La bibliothèque distribue tous les skills découverts sous `skills/`. Supprimer entièrement un skill du registre le retire des destinations gérées à la prochaine synchronisation, après sauvegarde. Retirer seulement son `SKILL.md` en laissant d'autres fichiers ordinaires provoque une erreur et conserve les installations existantes. Une bibliothèque vide retire tous ses skills gérés. Les catégories, sélections et règles d'équipe sont gérées par la CLI. Les marketplaces propres aux agents ne sont pas générées.
+The library distributes all skills discovered under `skills/`, subject to the configured selection and team rules. Removing an entire skill from the registry removes it from managed destinations at the next synchronization, after backing it up. Removing only its `SKILL.md` while leaving other ordinary files causes an error and preserves existing installations. An empty library removes all its managed skills. Categories, selections and team rules are managed by the CLI. Agent-specific marketplaces are not generated.
 
-Limites : 1000 fichiers et 25 MiB sous `skills/` par bibliothèque, README des catégories compris ; 5 MiB par fichier, 128 KiB par `SKILL.md` d'entrée, frontmatter imbriqué à 32 niveaux au maximum. Les alias YAML, liens symboliques, sous-modules, chemins non portables et collisions de casse sont refusés. Git LFS n'est pas développé : ses fichiers restent des pointeurs Git.
+Limits: 1000 files and 25 MiB under `skills/` per library, including category README files; 5 MiB per file, 128 KiB per entry-point `SKILL.md`, and a maximum frontmatter nesting depth of 32. YAML aliases, symbolic links, submodules, non-portable paths and case collisions are rejected. Git LFS is not expanded: its files remain Git pointers.
 
-## Protection des fichiers
+## File protection
 
-Les collisions avec des skills personnels et les modifications locales d'un skill géré bloquent toute la synchronisation avant de changer les destinations. Il n'existe pas d'option pour forcer leur écrasement. Pour contribuer, copiez vos modifications dans le registre, ouvrez une pull request, puis déplacez la copie locale modifiée hors du dossier géré avant de synchroniser.
+Collisions with personal skills and local edits to a managed skill block the entire synchronization before any destination changes. There is no option to force overwriting them. To contribute, copy your changes into the registry, open a pull request, then move the locally modified copy out of the managed directory before synchronizing.
 
-Les anciennes copies sont déplacées dans `~/.skillsync/transactions/<identifiant>/backup/`, avec leur chemin d'agent. Une interruption avant l'enregistrement de l'état déclenche une restauration à la prochaine commande. Les éventuels fichiers de la nouvelle installation sont conservés sous `recovered/` avant cette restauration. Un verrou empêche deux commandes SkillSync de modifier simultanément les installations.
+Previous copies are moved to `~/.skillsync/transactions/<id>/backup/`, preserving their agent paths. An interruption before state is saved triggers recovery on the next command. Any files from the new installation are preserved under `recovered/` before that restoration. A lock prevents two SkillSync commands from modifying installations simultaneously.
 
-Les sauvegardes ne sont pas purgées automatiquement. Elles peuvent contenir du contenu privé et consommer de l'espace disque. Utilisez `backups prune` pour les nettoyer et `rollback` pour restaurer la précédente installation vérifiable. Les écritures de plusieurs skills ne sont pas simultanément atomiques pour les autres applications : la récupération par journal protège les mises à jour interrompues. Évitez de synchroniser pendant qu'un agent exécute un script du skill.
+Backups are not purged automatically. They may contain private content and consume disk space. Use `backups prune` to clean them up and `rollback` to restore the previous verifiable installation. Writes across multiple skills are not simultaneously atomic for other applications: journal-based recovery protects interrupted updates. Avoid synchronizing while an agent is executing a skill's script.
 
-## Sécurité et compatibilité
+## Security and compatibility
 
-Le registre est une source de confiance : protégez sa branche et faites relire les changements, particulièrement les scripts. SkillSync lit les blobs Git sans checkout, filtres ou exécution des scripts du registre. Les agents peuvent toutefois exécuter ces scripts lorsqu'ils utilisent un skill.
+The registry is a trusted source: protect its branch and review changes, especially scripts. SkillSync reads Git blobs without checkout, filters or execution of registry scripts. Agents may execute those scripts when using a skill.
 
-L'authentification passe par Git et les mécanismes déjà configurés sur la machine. Les URL HTTPS avec identifiants intégrés et les transports non chiffrés sont refusés. Les invocations Git utilisent des arguments séparés, désactivent les hooks et les transports non autorisés. Aucune télémétrie n'est envoyée.
+Authentication uses Git and the mechanisms already configured on the machine. HTTPS URLs with embedded credentials and unencrypted transports are rejected. Git invocations pass arguments separately and disable hooks and unauthorized transports. No telemetry is sent.
 
-Les chemins gérés ne doivent pas contenir de liens symboliques ou de jonctions. Les déplacements de dossiers supposent qu'ils peuvent être effectués sur le même système de fichiers ; des montages distincts peuvent faire échouer une synchronisation, qui sera alors restaurée. Le journal n'est pas une garantie contre toutes les pannes matérielles. Le programme s'appuie sur les protections du compte utilisateur ; il ne défend pas contre un autre processus malveillant ayant les mêmes droits et modifiant les fichiers en même temps.
+Managed paths must not contain symbolic links or junctions. Directory moves assume they can take place on the same filesystem; separate mounts may cause synchronization to fail and roll back. The journal is not a guarantee against every hardware failure. The program relies on the user account's protections; it does not defend against a malicious process with the same privileges modifying files concurrently.
 
-Le format des fichiers est partagé, mais les commandes, outils, permissions et déclenchements peuvent varier selon l'agent. Les environnements cloud ne reçoivent pas automatiquement les fichiers d'une machine locale. L'installation d'un skill ne prouve pas qu'un agent l'a chargé ou utilisé.
+The file format is shared, but commands, tools, permissions and triggers may differ between agents. Cloud environments do not automatically receive files from a local machine. Installing a skill does not prove that an agent loaded or used it.
 
-Documentation de référence : [Agent Skills](https://agentskills.io/specification), [Claude Code](https://code.claude.com/docs/en/skills), [Codex](https://learn.chatgpt.com/docs/build-skills), [Cursor](https://cursor.com/docs/skills).
+Reference documentation: [Agent Skills](https://agentskills.io/specification), [Claude Code](https://code.claude.com/docs/en/skills), [Codex](https://learn.chatgpt.com/docs/build-skills), [Cursor](https://cursor.com/docs/skills).
 
-## Développer et contribuer
+## Development and contributing
 
-Un projet console contient la CLI et le moteur ; un second projet fournit des vérifications exécutables sans framework de test supplémentaire. Les seules dépendances de production sont `System.CommandLine` pour la CLI et `YamlDotNet` pour le frontmatter.
+One console project contains the CLI and engine; a second project provides executable checks without an additional test framework. The only production dependencies are `System.CommandLine` for the CLI and `YamlDotNet` for frontmatter.
 
-Le code suit une organisation Vertical Slice légère : chaque commande regroupe ses arguments, ses validations et son cas d'usage dans `Features/`. Les composants communs ont des responsabilités distinctes :
+The code uses a lightweight Vertical Slice organization: each command groups its arguments, validations and use case in `Features/`. Shared components have separate responsibilities:
 
 ```text
 src/SkillSync/
-  Program.cs                  Point d'entrée
+  Program.cs                  Entry point
   Cli/
-    CliApp.cs                 Composition et enregistrement des commandes
-    CommandOutput.cs          Affichage, erreurs et codes de sortie
+    CliApp.cs                 Composition and command registration
+    CommandOutput.cs          Output, errors and exit codes
   Features/
-    Init.cs                   Connexion à une bibliothèque
-    Sync.cs                   Synchronisation d'une installation
-    Status.cs                 Inspection de l'état local
-    Watch.cs                  Synchronisation périodique
-    Uninstall.cs              Retrait des skills gérés
-    Selection.cs              Catalogue, sélection et révision épinglée
-    Authoring.cs              Création et validation locale
-    Propose.cs                Contribution Git et PR GitHub
-    Backups.cs                Retour arrière et nettoyage
-    AutoSync.cs               Commandes de planification
-    Maintenance.cs            Mise à jour et retrait de la CLI
+    Init.cs                   Connect to a library
+    Sync.cs                   Synchronize an installation
+    Status.cs                 Inspect local state
+    Watch.cs                  Periodic synchronization
+    Uninstall.cs              Remove managed skills
+    Selection.cs              Catalogue, selection and pinned revision
+    Authoring.cs              Local creation and validation
+    Propose.cs                Git contribution and GitHub PRs
+    Backups.cs                Rollback and cleanup
+    AutoSync.cs               Scheduling commands
+    Maintenance.cs            CLI update and removal
   Registry/
-    GitRegistry.cs            Accès Git et lecture des fichiers du registre
-    SkillCatalog.cs           Découverte des skills dans les catégories
-    SkillValidator.cs         Validation des noms et du frontmatter YAML
-    RegistryConfig.cs         Configuration de connexion et ses contraintes
-    Snapshot.cs               Contenu d'une version de la bibliothèque
+    GitRegistry.cs            Git access and registry file reading
+    SkillCatalog.cs           Skill discovery across categories
+    SkillValidator.cs         Name and YAML frontmatter validation
+    RegistryConfig.cs         Connection configuration and constraints
+    Snapshot.cs               Library revision contents
   Installation/
-    SkillInstaller.cs         Préparation, conflits, sauvegardes et récupération
-    Journal.cs                Données du journal de transaction
+    SkillInstaller.cs         Preparation, conflicts, backups and recovery
+    Journal.cs                Transaction journal data
   Storage/
-    LocalFiles.cs             Chemins sûrs, verrou, empreintes et écritures JSON
-    StateStore.cs             Lecture et validation de l'état d'installation
-    SyncState.cs              Données persistées d'une installation
-  Scheduling/                 Définitions et opérations natives des planificateurs
-  Maintenance/                Propriété des entrées PATH et reçus d'installation
-  Runtime/                    Exécution bornée et annulable des outils externes
+    LocalFiles.cs             Safe paths, locks, hashes and JSON writes
+    StateStore.cs             Installation state reading and validation
+    SyncState.cs              Persisted installation data
+  Scheduling/                 Native scheduler definitions and operations
+  Maintenance/                PATH ownership and installation receipts
+  Runtime/                    Bounded, cancellable external tool execution
   Agents/
-    AgentTargets.cs           Agents pris en charge et destinations
+    AgentTargets.cs           Supported agents and destinations
 ```
 
-`CliApp` construit explicitement les composants et enregistre les commandes. Les slices pilotent leurs opérations ; elles partagent un seul `SkillInstaller` pour appliquer les fichiers et récupérer les transactions interrompues. Ce moteur ne connaît ni les commandes CLI ni Git. `Watch` compose les cas d'usage `Sync` et `Status`.
+`CliApp` explicitly constructs components and registers commands. Slices orchestrate their operations; they share one `SkillInstaller` to apply files and recover interrupted transactions. This engine knows neither CLI commands nor Git. `Watch` composes the `Sync` and `Status` use cases.
 
-Les tests sont regroupés par fonctionnalité sous `tests/SkillSync.Checks/Features/`, avec des vérifications dédiées à la récupération, à la validation du registre et à la CLI complète. Le runner, les assertions et les dépôts Git temporaires sont séparés. Toute fonctionnalité ou correction suit le cycle TDD : écrire la vérification dans le groupe concerné, observer son échec, implémenter le minimum, puis passer au vert avant de refactorer. Cette règle est aussi inscrite dans `AGENTS.md`.
+Tests are grouped by feature under `tests/SkillSync.Checks/Features/`, with dedicated checks for recovery, registry validation and the complete CLI. The runner, assertions and temporary Git repositories are separate. Every feature or fix follows TDD: write a check in the relevant group, observe its failure, implement the minimum, then pass it before refactoring. This rule is also recorded in `AGENTS.md`.
 
-Les commandes existantes et les chemins d'installation restent compatibles. Les états des anciennes versions sont lisibles ; la configuration reçoit des champs optionnels pour la sélection, l'équipe et la révision. Les anciennes CLI ne savent pas lire ces nouveaux champs : le retour arrière des skills ne constitue pas un retour arrière du binaire. Aucun framework de médiation, conteneur d'injection de dépendances ou couche de repositories génériques n'est nécessaire pour ce découpage.
+Existing commands and installation paths remain compatible. State from older versions can be read; configuration gains optional fields for selection, team and revision. Older CLIs cannot read these new fields: rolling back skills does not roll back the binary. This organization does not require a mediation framework, dependency injection container or generic repository layer.
 
 ```sh
 dotnet build SkillSync.slnx --configuration Release
@@ -313,6 +313,6 @@ dotnet run --project tests/SkillSync.Checks --configuration Release --no-build
 dotnet pack src/SkillSync --configuration Release --no-build --output artifacts/packages
 ```
 
-La CI exécute ces commandes nativement sur les six couples Linux/Windows/macOS et x64/ARM64, teste les installateurs avec un serveur HTTP local et vérifie les archives de distribution et le cycle réel installation/mise à jour/retrait du binaire. Elle produit six archives autonomes et leurs SHA-256 ; les tags de version les publient dans GitHub Releases. Les vérifications portent sur un vrai registre Git temporaire : installation, mise à jour, désinstallation, fichiers personnels, modifications locales, suppressions, panne réseau simulée, fichiers manquants, métadonnées invalides, liens malveillants et récupération d'interruption. La création d'un lien local est ignorée sous Windows lorsqu'elle nécessite des privilèges ; les liens suivis dans Git restent testés.
+CI runs these commands natively on all six Linux/Windows/macOS and x64/ARM64 combinations, tests installers with a local HTTP server, and checks distribution archives and the real binary installation/update/removal lifecycle. It produces six standalone archives and their SHA-256 checksums; version tags publish them to GitHub Releases. Checks use a real temporary Git registry and cover installation, updates, removal, personal files, local edits, deletions, simulated network failure, missing files, invalid metadata, malicious links and interruption recovery. Creating a local link is skipped on Windows when it requires privileges; Git-tracked links remain tested.
 
-Les tests des installateurs couvrent les téléchargements, les erreurs de SHA-256, les archives malveillantes, les versions invalides, Git absent et le PATH sans doublon. Ils ne modifient jamais les profils ou le PATH utilisateur réels. Les essais réels des agents et leurs limites sont décrits dans [docs/verification.md](docs/verification.md). Pour isoler les essais, `SKILLSYNC_HOME` permet de choisir la racine des fichiers gérés ; cette variable ne change pas le dossier personnel du système ni les réglages des agents.
+Installer tests cover downloads, SHA-256 failures, malicious archives, invalid versions, missing Git and duplicate-free PATH setup. They never modify real shell profiles or the user's PATH. Live agent tests and their limits are documented in [docs/verification.md](docs/verification.md). To isolate checks, `SKILLSYNC_HOME` selects the root of managed files; it does not change the system home directory or agent settings.

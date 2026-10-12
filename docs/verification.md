@@ -1,41 +1,40 @@
-# Vérification des agents
+# Agent verification
 
-Le 12 octobre 2026, un registre Git temporaire a été synchronisé par SkillSync
-dans un projet temporaire via SKILLSYNC_HOME. Les dossiers installés étaient
-.claude/skills/skillsync-proof/ et .agents/skills/skillsync-proof/.
+On October 12, 2026, SkillSync synchronized a temporary Git registry into a
+temporary project using `SKILLSYNC_HOME`. The installed directories were
+`.claude/skills/skillsync-proof/` and `.agents/skills/skillsync-proof/`.
 
-Le corps du skill contenait un marqueur absent du prompt d'invocation. Les deux
-agents ont renvoyé exactement ce marqueur, sans modification de fichiers :
+The skill body contained a marker absent from the invocation prompt. Both
+agents returned exactly that marker without modifying any files:
 
-| Agent | Version | Résultat |
+| Agent | Version | Result |
 | --- | --- | --- |
-| Claude Code | 2.1.296 | Chargement et invocation explicite confirmés |
-| Codex CLI | 0.159.2 | Chargement et invocation explicite confirmés, sandbox lecture seule |
-| Cursor | Non installé dans cet environnement | Essai réel restant à réaliser |
+| Claude Code | 2.1.296 | Loading and explicit invocation confirmed |
+| Codex CLI | 0.159.2 | Loading and explicit invocation confirmed in a read-only sandbox |
+| Cursor | CLI unavailable in this environment | Live test still required |
 
-Ces essais utilisent les emplacements projet équivalents aux emplacements
-personnels distribués par défaut. Ils ne prouvent pas le rechargement pendant
-une session déjà ouverte, le déclenchement automatique par description, ni le
-fonctionnement de chaque script tiers contenu dans un skill.
+These checks use project locations equivalent to the personal locations used
+by default. They do not prove reloading within an existing session, automatic
+invocation based on the description, or execution of every third-party script
+bundled with a skill.
 
-Pour reproduire, installer un skill de test avec une réponse connue dans un
-projet temporaire, puis l'invoquer explicitement dans chaque agent. Garder le
-marqueur uniquement dans le corps du skill. Refaire l'essai après un changement
-important de version d'un agent. Les essais appelant un modèle sont volontaires
-et ne s'exécutent pas dans la suite de tests normale.
+To reproduce, install a test skill with a known response in a temporary
+project, then invoke it explicitly in each agent. Keep the marker only in the
+skill body. Repeat the check after a major agent version change. Tests that call
+a model are opt-in and do not run in the normal test suite.
 
-Références officielles :
+Official references:
 [Codex](https://learn.chatgpt.com/docs/build-skills),
 [Claude Code](https://code.claude.com/docs/en/skills),
 [Cursor](https://cursor.com/help/customization/skills).
 
-La CI valide aussi les exécutables sur Linux, Windows et macOS, en x64 et ARM64.
-Chaque runner installe un vrai binaire depuis un serveur HTTP local, active une
-tâche native sur son compte éphémère, attend une synchronisation réussie, retire
-la tâche, met à jour le binaire et effectue le retrait complet. Les profils de
-shell et les dossiers de skills restent temporaires ; les tâches natives sont
-créées uniquement sur les runners éphémères, jamais sur la machine de développement.
+CI also validates executables on Linux, Windows and macOS, in x64 and ARM64.
+Each runner installs a real binary from a local HTTP server, activates a native
+task on its ephemeral account, waits for successful synchronization, removes
+the task, updates the binary, and performs complete removal. Shell profiles
+and skill directories remain temporary; native tasks are created only on
+ephemeral runners, never on the development machine.
 
-Les tests de contribution utilisent un vrai registre local pour les validations
-et un exécuteur simulé pour vérifier la création de branche, le push et les
-arguments GitHub. Ils ne publient pas de PR de test sur un dépôt externe.
+Contribution tests use a real local registry for validation and a simulated
+executor to verify branch creation, push and GitHub arguments. They do not
+publish test PRs to an external repository.
